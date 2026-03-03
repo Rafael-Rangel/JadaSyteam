@@ -1,0 +1,109 @@
+// Prisma schema - Jada Platform
+// Supabase (PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  role      String   // owner, manager, employee (buyer) | owner, manager, seller (seller) | admin
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Plan {
+  id                      String   @id @default(cuid())
+  slug                    String   @unique
+  name                    String
+  price                   Int      // valor em reais
+  usersLimit              Int
+  requestsPerMonthLimit   Int
+  proposalsPerMonthLimit  Int
+  description             String?
+  features                Json?    // array de strings
+  popular                 Boolean  @default(false)
+  active                  Boolean  @default(true)
+  sortOrder               Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model Company {
+  id                   String   @id @default(cuid())
+  name                 String
+  cnpj                 String   // obrigatório; 14 dígitos
+  type                 String   // buyer, seller, both
+  plan                 String   @default("starter") // slug do plano (Plan.slug)
+  verificationStatus   String   @default("pending") // pending, approved, rejected
+  verifiedAt           DateTime?
+  verificationPayload  Json?    // resposta API ou resumo para auditoria
+  address              String?
+  city                 String?
+  state                String?
+  zipCode              String?
+  description          String?
+  sellerRadius         Int?     // raio em km (vendedor)
+  sellerReceiveAll     Boolean? // receber todas oportunidades
+  sellerCategories     String?  // JSON array de categorias
+  users                User[]
+  requests             Request[]  @relation("BuyerCompany")
+  proposals            Proposal[]
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Request {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  quantity    String
+  unit        String    @default("pcs")
+  category    String
+  deliveryDate String
+  address     String
+  city        String
+  state       String
+  isPublic    Boolean   @default(true)
+  status      String    @default("open") // open, receiving, selected, closed
+  buyerId     String
+  buyer       Company   @relation("BuyerCompany", fields: [buyerId], references: [id], onDelete: Cascade)
+  proposals   Proposal[]
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+}
+
+model Proposal {
+  id           String   @id @default(cuid())
+  requestId    String
+  request      Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  sellerId     String
+  seller       Company  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  price        String
+  deliveryDays String
+  details      String?
+  validity     String?
+  status       String   @default("sent") // sent, viewed, accepted, rejected
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

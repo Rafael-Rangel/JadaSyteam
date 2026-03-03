@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -8,10 +8,30 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
-import { Package, MapPin, Calendar, DollarSign, Send, Edit, Check } from 'lucide-react';
+import { Package, MapPin, Calendar, DollarSign, Send, Check } from 'lucide-react';
+
+type OpportunityDetail = {
+  id: string;
+  title: string;
+  description: string;
+  quantity: string;
+  unit: string;
+  category: string;
+  deliveryDate: string;
+  address: string;
+  city: string;
+  state: string;
+  buyer: { name: string };
+  myProposal: { id: string; status: string } | null;
+};
 
 export default function OpportunityDetailPage({ params }: { params: { id: string } }) {
+  const id = params.id;
   const router = useRouter();
+  const [opportunity, setOpportunity] = useState<OpportunityDetail | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<string>('pending');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [formData, setFormData] = useState({
     price: '',
@@ -20,61 +40,101 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
     validUntil: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [hasProposal, setHasProposal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Dados simulados
-  const opportunity = {
-    id: params.id,
-    title: '600 parafusos M6',
-    description: 'Preciso de 600 parafusos M6 de aço inoxidável para projeto de construção. Entrega preferencialmente na região de São Paulo.',
-    quantity: 600,
-    unit: 'pcs',
-    category: 'Construção',
-    deliveryDate: '2024-02-15',
-    address: 'Rua das Flores, 123, Centro',
-    city: 'São Paulo',
-    state: 'SP',
-    buyer: 'Empresa ABC',
-    created: '2024-01-15',
-  };
+  useEffect(() => {
+    Promise.all([
+      fetch(`/api/requests/${id}`).then((res) => (res.ok ? res.json() : Promise.reject(new Error('Não encontrado')))),
+      fetch('/api/company').then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([opp, comp]) => {
+        setOpportunity(opp);
+        setVerificationStatus((comp as { verificationStatus?: string })?.verificationStatus ?? 'pending');
+      })
+      .catch(() => setError('Oportunidade não encontrada.'))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  const handleSubmitProposal = (e: React.FormEvent) => {
+  const hasProposal = !!opportunity?.myProposal;
+
+  const handleSubmitProposal = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
     const newErrors: Record<string, string> = {};
-    if (!formData.price) newErrors.price = 'Preço é obrigatório';
-    if (!formData.deliveryTime) newErrors.deliveryTime = 'Prazo de entrega é obrigatório';
-    if (!formData.details.trim()) newErrors.details = 'Detalhes são obrigatórios';
-    if (!formData.validUntil) newErrors.validUntil = 'Validade da proposta é obrigatória';
+    if (!formData.price.trim()) newErrors.price = 'Preço é obrigatório';
+    if (!formData.deliveryTime.trim()) newErrors.deliveryTime = 'Prazo de entrega é obrigatório';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    // Simular envio (sem backend)
-    setHasProposal(true);
-    setShowProposalModal(false);
-    setFormData({ price: '', deliveryTime: '', details: '', validUntil: '' });
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/proposals/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: id,
+          price: formData.price,
+          deliveryDays: formData.deliveryTime,
+          details: formData.details || undefined,
+          validity: formData.validUntil || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrors({ price: data.error || 'Erro ao enviar proposta.' });
+        setSubmitting(false);
+        return;
+      }
+      setShowProposalModal(false);
+      setFormData({ price: '', deliveryTime: '', details: '', validUntil: '' });
+      setOpportunity((prev) => prev ? { ...prev, myProposal: { id: '', status: 'sent' } } : null);
+      router.refresh();
+    } catch {
+      setErrors({ price: 'Erro ao enviar proposta. Tente novamente.' });
+    }
+    setSubmitting(false);
   };
+
+  if (loading || error) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header userType="seller" />
+        <main className="flex-grow py-8 bg-gray-50 flex items-center justify-center">
+          <Card className="max-w-md mx-auto">
+            {loading ? <p className="text-gray-600">Carregando...</p> : <p className="text-gray-600">{error}</p>}
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!opportunity) return null;
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header userType="seller" userName="Maria Santos" />
-      
+      <Header userType="seller" />
+
       <main className="flex-grow py-8 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <Button variant="outline" onClick={() => router.back()} className="mb-6">
             ← Voltar
           </Button>
 
+          {verificationStatus !== 'approved' && (
+            <div className="mb-6 p-4 rounded-lg text-sm bg-warning-50 border border-warning-200 text-warning-800">
+              Sua empresa está em análise de CNPJ. Você não pode enviar propostas até a aprovação.
+            </div>
+          )}
+
           <Card className="mb-6">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">{opportunity.title}</h2>
-            
             <div className="space-y-4 mb-6">
               <p className="text-gray-700">{opportunity.description}</p>
-
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Quantidade</p>
@@ -86,16 +146,13 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Prazo Desejado</p>
-                  <p className="font-semibold text-gray-900">
-                    {new Date(opportunity.deliveryDate).toLocaleDateString('pt-BR')}
-                  </p>
+                  <p className="font-semibold text-gray-900">{opportunity.deliveryDate}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Comprador</p>
-                  <p className="font-semibold text-gray-900">{opportunity.buyer}</p>
+                  <p className="font-semibold text-gray-900">{opportunity.buyer.name}</p>
                 </div>
               </div>
-
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4" />
                 <span>{opportunity.address}, {opportunity.city} - {opportunity.state}</span>
@@ -108,12 +165,15 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
                   <Check className="w-5 h-5" />
                   <span className="font-semibold">Proposta Enviada</span>
                 </div>
-                <p className="text-sm text-success-700">
-                  Sua proposta foi enviada com sucesso. O comprador será notificado.
-                </p>
+                <p className="text-sm text-success-700">Sua proposta foi enviada. O comprador será notificado.</p>
               </div>
-            ) : (
+            ) : verificationStatus === 'approved' ? (
               <Button onClick={() => setShowProposalModal(true)}>
+                <Send className="w-5 h-5 mr-2 inline" />
+                Enviar Proposta
+              </Button>
+            ) : (
+              <Button disabled title="Aguarde a aprovação do CNPJ para enviar propostas">
                 <Send className="w-5 h-5 mr-2 inline" />
                 Enviar Proposta
               </Button>
@@ -122,23 +182,16 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
         </div>
       </main>
 
-      {/* Proposal Modal */}
       <Modal
         isOpen={showProposalModal}
-        onClose={() => {
-          setShowProposalModal(false);
-          setFormData({ price: '', deliveryTime: '', details: '', validUntil: '' });
-          setErrors({});
-        }}
+        onClose={() => { setShowProposalModal(false); setErrors({}); }}
         title="Enviar Proposta"
         size="lg"
       >
         <form onSubmit={handleSubmitProposal} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Preço (R$) <span className="text-danger-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Preço (R$) <span className="text-danger-500">*</span></label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
@@ -149,11 +202,9 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   error={errors.price}
                   className="pl-10"
-                  required
                 />
               </div>
             </div>
-
             <Input
               label="Prazo de Entrega (dias)"
               type="number"
@@ -161,50 +212,26 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
               value={formData.deliveryTime}
               onChange={(e) => setFormData({ ...formData, deliveryTime: e.target.value })}
               error={errors.deliveryTime}
-              required
             />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Detalhes e Condições <span className="text-danger-500">*</span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Detalhes e Condições</label>
             <textarea
               className="input min-h-[120px] resize-none"
-              placeholder="Descreva as condições de entrega, garantia, formas de pagamento, etc..."
+              placeholder="Condições de entrega, garantia, etc."
               value={formData.details}
               onChange={(e) => setFormData({ ...formData, details: e.target.value })}
-              required
             />
-            {errors.details && (
-              <p className="mt-1 text-sm text-danger-600">{errors.details}</p>
-            )}
           </div>
-
           <Input
             label="Validade da Proposta"
             type="date"
             value={formData.validUntil}
             onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-            error={errors.validUntil}
-            icon={<Calendar className="w-5 h-5" />}
-            required
           />
-
           <div className="flex space-x-4 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setShowProposalModal(false);
-                setFormData({ price: '', deliveryTime: '', details: '', validUntil: '' });
-                setErrors({});
-              }}
-              className="flex-1"
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" className="flex-1">
+            <Button type="button" variant="outline" onClick={() => setShowProposalModal(false)} className="flex-1">Cancelar</Button>
+            <Button type="submit" className="flex-1" isLoading={submitting}>
               <Send className="w-4 h-4 mr-1 inline" />
               Enviar Proposta
             </Button>
@@ -216,6 +243,3 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
     </div>
   );
 }
-
-
-

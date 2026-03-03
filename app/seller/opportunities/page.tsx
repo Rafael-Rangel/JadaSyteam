@@ -1,16 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import { Search, Filter, Eye, MapPin, Calendar, Package, X, SlidersHorizontal } from 'lucide-react';
+import { Search, Eye, MapPin, Calendar, Package, SlidersHorizontal, X } from 'lucide-react';
+
+type OpportunityItem = {
+  id: string;
+  title: string;
+  description?: string;
+  buyer: string;
+  buyerId: string;
+  category: string;
+  city: string;
+  state: string;
+  deliveryDate: string;
+  created: string;
+  hasProposal: boolean;
+};
 
 export default function OpportunitiesPage() {
   const [showFilters, setShowFilters] = useState(false);
+  const [opportunities, setOpportunities] = useState<OpportunityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     searchTerm: '',
     keyword: '',
@@ -22,117 +39,33 @@ export default function OpportunitiesPage() {
     state: '',
   });
 
-  const opportunities = [
-    {
-      id: 1,
-      title: '600 parafusos M6',
-      buyer: 'Empresa ABC',
-      buyerId: 'abc',
-      distance: 12,
-      category: 'Construção',
-      city: 'São Paulo',
-      state: 'SP',
-      deliveryDate: '2024-02-15',
-      created: '2024-01-15',
-      hasProposal: false,
-      description: 'Parafusos de aço inoxidável para construção',
-    },
-    {
-      id: 2,
-      title: '100 metros de cabo elétrico',
-      buyer: 'Empresa XYZ',
-      buyerId: 'xyz',
-      distance: 8,
-      category: 'Elétrica',
-      city: 'São Paulo',
-      state: 'SP',
-      deliveryDate: '2024-02-20',
-      created: '2024-01-14',
-      hasProposal: true,
-      description: 'Cabo elétrico flexível 2.5mm',
-    },
-    {
-      id: 3,
-      title: '50 placas de madeira',
-      buyer: 'Construção Total',
-      buyerId: 'total',
-      distance: 15,
-      category: 'Construção',
-      city: 'São Paulo',
-      state: 'SP',
-      deliveryDate: '2024-02-18',
-      created: '2024-01-13',
-      hasProposal: false,
-      description: 'Placas de madeira compensada',
-    },
-    {
-      id: 4,
-      title: '200 tijolos cerâmicos',
-      buyer: 'Empresa ABC',
-      buyerId: 'abc',
-      distance: 25,
-      category: 'Construção',
-      city: 'Guarulhos',
-      state: 'SP',
-      deliveryDate: '2024-02-25',
-      created: '2024-01-12',
-      hasProposal: false,
-      description: 'Tijolos cerâmicos padrão',
-    },
-    {
-      id: 5,
-      title: '30 torneiras elétricas',
-      buyer: 'Hidráulica Plus',
-      buyerId: 'hidraulica',
-      distance: 18,
-      category: 'Hidráulica',
-      city: 'São Paulo',
-      state: 'SP',
-      deliveryDate: '2024-02-22',
-      created: '2024-01-11',
-      hasProposal: false,
-      description: 'Torneiras elétricas para banheiro',
-    },
-  ];
+  useEffect(() => {
+    fetch('/api/requests')
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Erro ao carregar'))))
+      .then(setOpportunities)
+      .catch(() => setError('Não foi possível carregar as oportunidades.'))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const companies = ['Empresa ABC', 'Empresa XYZ', 'Construção Total', 'Hidráulica Plus'];
-  const categories = ['Construção', 'Elétrica', 'Hidráulica', 'Ferramentas', 'Materiais'];
+  const categories = ['Construção', 'Elétrica', 'Hidráulica', 'Ferramentas', 'Materiais', 'Outros'];
+  const companies = Array.from(new Set(opportunities.map((o) => o.buyer))).sort();
 
   const filteredOpportunities = opportunities.filter((opp) => {
-    // Busca geral (título, descrição, comprador)
-    const matchesSearch = !filters.searchTerm || 
+    const desc = (opp.description || '').toLowerCase();
+    const matchesSearch = !filters.searchTerm ||
       opp.title.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-      opp.description.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+      desc.includes(filters.searchTerm.toLowerCase()) ||
       opp.buyer.toLowerCase().includes(filters.searchTerm.toLowerCase());
-
-    // Palavra chave
     const matchesKeyword = !filters.keyword ||
-      opp.title.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-      opp.description.toLowerCase().includes(filters.keyword.toLowerCase());
-
-    // Produto chave
+      opp.title.toLowerCase().includes(filters.keyword.toLowerCase()) || desc.includes(filters.keyword.toLowerCase());
     const matchesProductKeyword = !filters.productKeyword ||
       opp.title.toLowerCase().includes(filters.productKeyword.toLowerCase());
-
-    // Categoria
     const matchesCategory = filters.category === 'all' || opp.category === filters.category;
-
-    // Empresa específica
     const matchesCompany = filters.company === 'all' || opp.buyer === filters.company;
-
-    // Raio de distância
-    const matchesRadius = !filters.radius || opp.distance <= parseInt(filters.radius);
-
-    // Cidade
-    const matchesCity = !filters.city || 
-      opp.city.toLowerCase().includes(filters.city.toLowerCase());
-
-    // Estado
+    const matchesCity = !filters.city || opp.city.toLowerCase().includes(filters.city.toLowerCase());
     const matchesState = !filters.state || opp.state === filters.state;
-
-    return matchesSearch && matchesKeyword && matchesProductKeyword && 
-           matchesCategory && matchesCompany && matchesRadius && 
-           matchesCity && matchesState;
+    return matchesSearch && matchesKeyword && matchesProductKeyword &&
+      matchesCategory && matchesCompany && matchesCity && matchesState;
   });
 
   const clearFilters = () => {
@@ -154,7 +87,7 @@ export default function OpportunitiesPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header userType="seller" userName="Maria Santos" />
+      <Header userType="seller" />
       
       <main className="flex-grow py-8 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -304,7 +237,15 @@ export default function OpportunitiesPage() {
 
           {/* Opportunities List */}
           <div className="space-y-4">
-            {filteredOpportunities.length === 0 ? (
+            {loading ? (
+              <Card className="text-center py-12">
+                <p className="text-gray-600">Carregando...</p>
+              </Card>
+            ) : error ? (
+              <Card className="text-center py-12">
+                <p className="text-gray-600">{error}</p>
+              </Card>
+            ) : filteredOpportunities.length === 0 ? (
               <Card className="text-center py-12">
                 <p className="text-gray-600 mb-4">Nenhuma oportunidade encontrada com os filtros aplicados</p>
                 {hasActiveFilters && (
@@ -331,7 +272,7 @@ export default function OpportunitiesPage() {
                         </span>
                         <span className="flex items-center space-x-1">
                           <MapPin className="w-4 h-4" />
-                          <span>{opportunity.distance} km • {opportunity.city} - {opportunity.state}</span>
+                          <span>{opportunity.city} - {opportunity.state}</span>
                         </span>
                         <span className="badge badge-info">{opportunity.category}</span>
                         <span className="flex items-center space-x-1">

@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { signIn, getSession } from 'next-auth/react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Button from '@/components/Button';
@@ -20,11 +22,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
-    // Validação simples
     const newErrors: Record<string, string> = {};
     if (!formData.email) {
       newErrors.email = 'E-mail é obrigatório';
@@ -43,13 +44,32 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    // Simular login (sem backend)
-    setTimeout(() => {
+    try {
+      const res = await signIn('credentials', {
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        redirect: false,
+      });
+      if (res?.error) {
+        setErrors({ email: 'E-mail ou senha incorretos.' });
+        setIsLoading(false);
+        return;
+      }
+      const session = await getSession();
+      const role = (session?.user as { role?: string })?.role;
+      const companyType = (session?.user as { companyType?: string })?.companyType;
+      if (role === 'admin') {
+        router.push('/admin/dashboard');
+      } else if (companyType === 'seller') {
+        router.push('/seller/dashboard');
+      } else {
+        router.push('/buyer/dashboard');
+      }
+      router.refresh();
+    } catch {
+      setErrors({ email: 'Erro ao entrar. Tente novamente.' });
       setIsLoading(false);
-      // Redirecionar baseado no tipo de usuário (simulado)
-      // Na versão real, isso viria do backend
-      router.push('/buyer/dashboard');
-    }, 1500);
+    }
   };
 
   return (
@@ -60,6 +80,9 @@ export default function LoginPage() {
         <div className="max-w-md w-full mx-auto px-4 sm:px-6 lg:px-8">
           <Card>
             <div className="text-center mb-6">
+              <Link href="/" className="inline-block mb-4">
+                <Image src="/logo.jpg" alt="JADA" width={120} height={44} className="h-11 w-auto mx-auto" />
+              </Link>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Entrar</h1>
               <p className="text-gray-600">
                 Acesse sua conta para continuar

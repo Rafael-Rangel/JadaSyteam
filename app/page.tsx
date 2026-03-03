@@ -1,44 +1,52 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Button from '@/components/Button';
-import { ArrowRight, Check, ShoppingCart, Package, TrendingUp, Shield, Zap, Users } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Package, TrendingUp, Shield, Zap, Users } from 'lucide-react';
 
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 text-white py-20">
+        <section className="bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 text-white py-16 md:py-20 overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                Conecte Compradores e Vendedores
-                <br />
-                <span className="text-primary-200">de Forma Inteligente</span>
-              </h1>
-              <p className="text-xl md:text-2xl text-primary-100 mb-8 max-w-3xl mx-auto">
-                Publique suas necessidades e receba propostas competitivas dos melhores fornecedores do mercado.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/signup">
-                  <Button size="lg" className="bg-white text-primary-700 hover:bg-primary-50">
-                    Começar Agora
-                    <ArrowRight className="w-5 h-5 ml-2 inline" />
-                  </Button>
-                </Link>
-                <Link href="/plans">
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary-700">
-                    Ver Planos
-                  </Button>
-                </Link>
-                <Link href="/test-users">
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary-700">
-                    Usuários de Teste
-                  </Button>
-                </Link>
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+              <div className="flex-1 text-center lg:text-left">
+                <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6">
+                  Conecte Compradores e Vendedores
+                  <br />
+                  <span className="text-primary-200">de Forma Inteligente</span>
+                </h1>
+                <p className="text-lg md:text-xl text-primary-100 mb-8 max-w-2xl mx-auto lg:mx-0">
+                  Publique suas necessidades e receba propostas competitivas dos melhores fornecedores do mercado.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                  <Link href="/signup">
+                    <Button size="lg" className="bg-white text-primary-700 hover:bg-primary-50">
+                      Começar Agora
+                      <ArrowRight className="w-5 h-5 ml-2 inline" />
+                    </Button>
+                  </Link>
+                  <Link href="/plans">
+                    <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary-700">
+                      Ver Planos
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              <div className="flex-shrink-0 w-full max-w-sm lg:max-w-md">
+                <Image
+                  src="/mascote.png"
+                  alt="Mascote JADA"
+                  width={400}
+                  height={500}
+                  className="w-full h-auto object-contain drop-shadow-2xl -mb-[81px]"
+                  priority
+                />
               </div>
             </div>
           </div>

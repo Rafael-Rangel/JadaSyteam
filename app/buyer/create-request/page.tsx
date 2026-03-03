@@ -37,7 +37,7 @@ export default function CreateRequestPage() {
 
   const units = ['pcs', 'kg', 'm', 'm²', 'm³', 'un'];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
@@ -57,11 +57,35 @@ export default function CreateRequestPage() {
     }
 
     setIsLoading(true);
-    // Simular criação (sem backend)
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const res = await fetch('/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          quantity: formData.quantity,
+          unit: formData.unit,
+          category: formData.category,
+          deliveryDate: formData.deliveryDate,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          isPublic: formData.isPublic,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrors({ title: data.error || 'Erro ao criar requisição.' });
+        setIsLoading(false);
+        return;
+      }
       router.push('/buyer/requests');
-    }, 1500);
+      router.refresh();
+    } catch {
+      setErrors({ title: 'Erro ao criar requisição. Tente novamente.' });
+      setIsLoading(false);
+    }
   };
 
   return (

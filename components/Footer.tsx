@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Facebook, Instagram, Linkedin, Mail, Phone } from 'lucide-react';
 
 export default function Footer() {
@@ -9,10 +10,13 @@ export default function Footer() {
           {/* Logo e Descrição */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">J</span>
-              </div>
-              <span className="text-xl font-bold text-white">Jada</span>
+              <Image
+                src="/logo.jpg"
+                alt="JADA"
+                width={140}
+                height={48}
+                className="h-12 w-auto object-contain"
+              />
             </div>
             <p className="text-gray-400 mb-4 max-w-md">
               Plataforma de cotação que conecta compradores e vendedores de forma inteligente e eficiente.
@@ -78,7 +82,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-          <p>&copy; {new Date().getFullYear()} Jada Platform. Todos os direitos reservados.</p>
+          <p>&copy; {new Date().getFullYear()} JADA - Service &amp; Support. Todos os direitos reservados.</p>
           <div className="mt-2 space-x-4">
             <Link href="/privacy" className="hover:text-primary-400 transition-colors">
               Política de Privacidade

@@ -2,8 +2,19 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Card from '@/components/Card';
 import { ChevronDown } from 'lucide-react';
+import { getActivePlans } from '@/lib/planService';
 
-export default function FAQPage() {
+export default async function FAQPage() {
+  const activePlans = await getActivePlans();
+  const planPriceText =
+    activePlans.length > 0
+      ? activePlans
+          .map(
+            (p) => `${p.name} (R$ ${p.price.toLocaleString('pt-BR')}/mês)`
+          )
+          .join(', ')
+      : 'Consulte a página de planos.';
+
   const faqs = [
     {
       question: 'Como funciona a plataforma Jada?',
@@ -11,7 +22,7 @@ export default function FAQPage() {
     },
     {
       question: 'Quanto custa usar a plataforma?',
-      answer: 'Oferecemos três planos: Starter (R$ 49/mês), Growth (R$ 199/mês) e Enterprise (R$ 799/mês). Cada plano tem limites diferentes de usuários, requisições e propostas.',
+      answer: `Oferecemos planos a partir de: ${planPriceText}. Cada plano tem limites diferentes de usuários, requisições e propostas.`,
     },
     {
       question: 'Posso ser comprador e vendedor ao mesmo tempo?',

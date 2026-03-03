@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 import { Menu, X, ShoppingCart, Package, Settings, LogOut, User } from 'lucide-react';
 
 interface HeaderProps {
@@ -10,10 +12,29 @@ interface HeaderProps {
   userName?: string;
 }
 
-export default function Header({ userType = null, userName }: HeaderProps) {
+export default function Header({ userType: propUserType = null, userName: propUserName }: HeaderProps) {
+  const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  const companyType = (session?.user as { companyType?: string })?.companyType;
+  const role = (session?.user as { role?: string })?.role;
+  const userName = propUserName ?? session?.user?.name ?? null;
+  const derivedType: 'buyer' | 'seller' | 'admin' | null =
+    propUserType ??
+    (role === 'admin'
+      ? 'admin'
+      : companyType === 'buyer'
+        ? 'buyer'
+        : companyType === 'seller'
+          ? 'seller'
+          : companyType === 'both'
+            ? pathname.startsWith('/seller')
+              ? 'seller'
+              : 'buyer'
+            : null);
+  const userType = status === 'loading' ? null : derivedType;
 
   const isPublicPage = !userType;
 
@@ -49,10 +70,15 @@ export default function Header({ userType = null, userName }: HeaderProps) {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">J</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">Jada</span>
+              <Image
+                src="/logo.jpg"
+                alt="JADA"
+                width={40}
+                height={40}
+                className="h-10 w-auto object-contain"
+                priority
+              />
+              <span className="text-xl font-bold text-gray-900 hidden sm:inline">JADA</span>
             </Link>
           </div>
 
@@ -85,9 +111,6 @@ export default function Header({ userType = null, userName }: HeaderProps) {
             <div className="hidden md:flex items-center space-x-6">
               <Link href="/plans" className="text-gray-700 hover:text-primary-600 font-medium">
                 Planos
-              </Link>
-              <Link href="/test-users" className="text-gray-700 hover:text-primary-600 font-medium">
-                Teste
               </Link>
               <Link href="/about" className="text-gray-700 hover:text-primary-600 font-medium">
                 Sobre
@@ -150,14 +173,14 @@ export default function Header({ userType = null, userName }: HeaderProps) {
                       <span>Assinatura</span>
                     </Link>
                     <div className="border-t border-gray-200 my-1"></div>
-                    <Link
-                      href="/login"
-                      className="flex items-center space-x-2 px-4 py-2 text-sm text-danger-600 hover:bg-gray-100"
-                      onClick={() => setUserMenuOpen(false)}
+                    <button
+                      type="button"
+                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-danger-600 hover:bg-gray-100"
+                      onClick={() => { setUserMenuOpen(false); signOut({ callbackUrl: '/' }); }}
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Sair</span>
-                    </Link>
+                    </button>
                   </div>
                 )}
               </div>

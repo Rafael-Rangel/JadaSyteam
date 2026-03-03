@@ -1,3 +1,9 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Card from '@/components/Card';
@@ -5,36 +11,55 @@ import Button from '@/components/Button';
 import Link from 'next/link';
 import { ShoppingCart, Package, TrendingUp, Clock, Plus, Eye } from 'lucide-react';
 
-export default function BuyerDashboard() {
-  const stats = [
-    { label: 'Requisições Ativas', value: '12', icon: Package, color: 'primary' },
-    { label: 'Propostas Recebidas', value: '45', icon: ShoppingCart, color: 'success' },
-    { label: 'Requisições Restantes', value: '8/20', icon: TrendingUp, color: 'warning' },
-    { label: 'Pendentes de Resposta', value: '5', icon: Clock, color: 'danger' },
-  ];
+type RequestRow = { id: string; title: string; status: string; proposals: number; created: string };
 
-  const recentRequests = [
-    {
-      id: 1,
-      title: '600 parafusos M6',
-      status: 'open',
-      proposals: 8,
-      created: '2024-01-15',
-    },
-    {
-      id: 2,
-      title: '100 metros de cabo elétrico',
-      status: 'receiving',
-      proposals: 12,
-      created: '2024-01-14',
-    },
-    {
-      id: 3,
-      title: '50 placas de madeira',
-      status: 'selected',
-      proposals: 5,
-      created: '2024-01-10',
-    },
+type SubData = { verificationStatus?: string; limits: { requestsPerMonth: number }; usage: { requestsThisMonth: number } };
+
+export default function BuyerDashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [allRequests, setAllRequests] = useState<RequestRow[]>([]);
+  const [subscription, setSubscription] = useState<SubData | null>(null);
+
+  useEffect(() => {
+    const ct = (session?.user as { companyType?: string })?.companyType;
+    if (status === 'authenticated' && ct === 'seller') {
+      router.replace('/seller/dashboard');
+      return;
+    }
+  }, [session, status, router]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    fetch('/api/requests?buyerOnly=true')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: RequestRow[]) => setAllRequests(data))
+      .catch(() => {});
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    fetch('/api/company/subscription')
+      .then((res) => (res.ok ? res.json() : null))
+      .then(setSubscription)
+      .catch(() => {});
+  }, [status]);
+
+  const recentRequests = allRequests.slice(0, 5);
+  const openCount = allRequests.filter((r) => r.status === 'open' || r.status === 'receiving').length;
+  const totalProposals = allRequests.reduce((acc, r) => acc + r.proposals, 0);
+  const pendingCount = allRequests.filter((r) => r.status === 'receiving').length;
+  const remaining =
+    subscription && subscription.limits.requestsPerMonth < 99999
+      ? Math.max(0, subscription.limits.requestsPerMonth - subscription.usage.requestsThisMonth)
+      : null;
+  const isApproved = subscription?.verificationStatus === 'approved';
+
+  const stats = [
+    { label: 'Requisições Ativas', value: String(openCount), icon: Package, color: 'primary' },
+    { label: 'Propostas Recebidas', value: String(totalProposals), icon: ShoppingCart, color: 'success' },
+    { label: 'Requisições Restantes', value: remaining !== null ? String(remaining) : 'Ilimitado', icon: TrendingUp, color: 'warning' },
+    { label: 'Pendentes de Resposta', value: String(pendingCount), icon: Clock, color: 'danger' },
   ];
 
   const getStatusBadge = (status: string) => {
@@ -50,22 +75,40 @@ export default function BuyerDashboard() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header userType="buyer" userName="João Silva" />
+      <Header userType="buyer" />
       
       <main className="flex-grow py-8 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-gray-600 mt-1">Bem-vindo de volta, João!</p>
+          {subscription && subscription.verificationStatus && subscription.verificationStatus !== 'approved' && (
+            <div className="mb-6 p-4 rounded-lg text-sm bg-warning-50 border border-warning-200 text-warning-800">
+              Sua empresa está em análise de CNPJ. Você não pode criar requisições de compra até a aprovação.
             </div>
-            <Link href="/buyer/create-request">
-              <Button>
+          )}
+
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:block relative w-16 h-16 flex-shrink-0">
+                <Image src="/mascote.png" alt="" role="presentation" fill className="object-contain" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+                <p className="text-gray-600 mt-1">Bem-vindo de volta{session?.user?.name ? `, ${session.user.name}` : ''}!</p>
+              </div>
+            </div>
+            {isApproved ? (
+              <Link href="/buyer/create-request">
+                <Button>
+                  <Plus className="w-5 h-5 mr-2 inline" />
+                  Nova Requisição
+                </Button>
+              </Link>
+            ) : (
+              <Button disabled title="Aguarde a aprovação do CNPJ para criar requisições">
                 <Plus className="w-5 h-5 mr-2 inline" />
                 Nova Requisição
               </Button>
-            </Link>
+            )}
           </div>
 
           {/* Stats */}
@@ -104,7 +147,9 @@ export default function BuyerDashboard() {
             </div>
 
             <div className="space-y-4">
-              {recentRequests.map((request) => (
+              {recentRequests.length === 0 ? (
+                <p className="text-gray-600 py-4">Nenhuma requisição ainda. Crie sua primeira requisição.</p>
+              ) : recentRequests.map((request) => (
                 <div
                   key={request.id}
                   className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

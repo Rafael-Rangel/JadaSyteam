@@ -24,8 +24,16 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
+# local env files (não commitar .env com segredos)
+.env
 .env*.local
+
+# credenciais do admin (geradas por npm run create-admin)
+admin-credentials.txt
+
+# banco SQLite local (não versionar)
+dev.db
+*.db
 
 # vercel
 .vercel
@@ -36,3 +44,5 @@ next-env.d.ts
 
 
 
+
+/app/generated/prisma

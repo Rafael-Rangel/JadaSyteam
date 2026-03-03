@@ -1,52 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import { Search, Filter, Plus, Eye, Edit, X } from 'lucide-react';
+import { Search, Plus, Eye, Edit, X } from 'lucide-react';
+
+type RequestItem = {
+  id: string;
+  title: string;
+  status: string;
+  proposals: number;
+  created: string;
+  expires: string | null;
+};
 
 export default function RequestsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [requests, setRequests] = useState<RequestItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const requests = [
-    {
-      id: 1,
-      title: '600 parafusos M6',
-      status: 'open',
-      proposals: 8,
-      created: '2024-01-15',
-      expires: '2024-02-15',
-    },
-    {
-      id: 2,
-      title: '100 metros de cabo elétrico',
-      status: 'receiving',
-      proposals: 12,
-      created: '2024-01-14',
-      expires: '2024-02-14',
-    },
-    {
-      id: 3,
-      title: '50 placas de madeira',
-      status: 'selected',
-      proposals: 5,
-      created: '2024-01-10',
-      expires: '2024-02-10',
-    },
-    {
-      id: 4,
-      title: '200 tijolos cerâmicos',
-      status: 'closed',
-      proposals: 15,
-      created: '2024-01-05',
-      expires: '2024-02-05',
-    },
-  ];
+  useEffect(() => {
+    fetch('/api/requests?buyerOnly=true')
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Erro ao carregar'))))
+      .then(setRequests)
+      .catch(() => setError('Não foi possível carregar as requisições.'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -67,7 +52,7 @@ export default function RequestsPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header userType="buyer" userName="João Silva" />
+      <Header userType="buyer" />
       
       <main className="flex-grow py-8 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -133,7 +118,7 @@ export default function RequestsPage() {
                       <div className="flex items-center space-x-6 text-sm text-gray-600">
                         <span>{request.proposals} propostas recebidas</span>
                         <span>Criada em {new Date(request.created).toLocaleDateString('pt-BR')}</span>
-                        <span>Expira em {new Date(request.expires).toLocaleDateString('pt-BR')}</span>
+                        {request.expires && <span>Expira em {new Date(request.expires).toLocaleDateString('pt-BR')}</span>}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
