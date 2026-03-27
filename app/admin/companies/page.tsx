@@ -16,7 +16,9 @@ type Company = {
   type: string;
   plan: string;
   planName: string;
+  approvalStatus: string;
   verificationStatus: string;
+  billingStatus: string | null;
   verifiedAt: string | null;
   createdAt: string;
   usersCount: number;
@@ -97,7 +99,7 @@ function VerificationDetailContent({
           <h3 className="font-semibold text-gray-900">{company.name}</h3>
           <p className="text-sm text-gray-600">CNPJ: {company.cnpj || '—'}</p>
           <p className="text-sm text-gray-600 mt-1">
-            Status atual: {getVerificationBadge(company.verificationStatus)}
+            Status operacional: {getVerificationBadge(company.approvalStatus)}
             {company.verifiedAt && (
               <> · Verificado em {new Date(company.verifiedAt).toLocaleDateString('pt-BR')} às {new Date(company.verifiedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</>
             )}
@@ -176,13 +178,13 @@ function VerificationDetailContent({
           <Button variant="outline" onClick={onClose}>
             Fechar
           </Button>
-          {company.verificationStatus !== 'approved' && (
+          {company.approvalStatus !== 'approved' && (
             <Button variant="success" onClick={onApprove} disabled={isUpdating}>
               <Check className="w-4 h-4 mr-1" />
-              Aprovar
+              Aprovar e gerar cobrança
             </Button>
           )}
-          {company.verificationStatus !== 'rejected' && (
+          {company.approvalStatus !== 'rejected' && (
             <Button variant="outline" onClick={onReject} disabled={isUpdating}>
               <X className="w-4 h-4 mr-1" />
               Rejeitar
@@ -237,9 +239,9 @@ export default function CompaniesPage() {
 
   const filteredCompanies =
     activeTab === 'not-approved'
-      ? companies.filter((c) => c.verificationStatus !== 'approved')
+      ? companies.filter((c) => c.approvalStatus !== 'approved')
       : activeTab === 'approved'
-        ? companies.filter((c) => c.verificationStatus === 'approved')
+        ? companies.filter((c) => c.approvalStatus === 'approved')
         : companies;
 
   const getTypeBadge = (type: string) => {
@@ -267,11 +269,19 @@ export default function CompaniesPage() {
     fetch(`/api/admin/companies/${companyId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ verificationStatus: status }),
+      body: JSON.stringify({
+        approvalStatus: status,
+        verificationStatus: status === 'approved' ? 'approved' : undefined,
+      }),
     })
       .then((res) => (res.ok ? undefined : res.json().then((e) => Promise.reject(e))))
       .then(() => loadCompanies())
-      .catch(() => {})
+      .catch((e) => {
+        const msg =
+          (e && typeof e.error === 'string' && e.error) ||
+          'Não foi possível atualizar a empresa.';
+        window.alert(msg);
+      })
       .finally(() => setStatusUpdatingId(null));
   };
 
@@ -311,6 +321,8 @@ export default function CompaniesPage() {
                 ...company,
                 verificationStatus:
                   (dbData.verificationStatus as string) ?? company.verificationStatus,
+                approvalStatus: (dbData.approvalStatus as string) ?? company.approvalStatus,
+                billingStatus: (dbData.billingStatus as string | null) ?? company.billingStatus,
                 verifiedAt: (dbData.verifiedAt as string | null) ?? company.verifiedAt,
               }
             : company,
@@ -372,9 +384,9 @@ export default function CompaniesPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Não aprovadas
+                Pendentes
                 <span className="ml-2 text-xs bg-gray-200 text-gray-600 rounded-full px-2 py-0.5">
-                  {companies.filter((c) => c.verificationStatus !== 'approved').length}
+                  {companies.filter((c) => c.approvalStatus !== 'approved').length}
                 </span>
               </button>
               <button
@@ -388,7 +400,7 @@ export default function CompaniesPage() {
               >
                 Aprovadas
                 <span className="ml-2 text-xs bg-gray-200 text-gray-600 rounded-full px-2 py-0.5">
-                  {companies.filter((c) => c.verificationStatus === 'approved').length}
+                  {companies.filter((c) => c.approvalStatus === 'approved').length}
                 </span>
               </button>
               <button
@@ -467,7 +479,7 @@ export default function CompaniesPage() {
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-600">{company.cnpj || '—'}</td>
                         <td className="py-3 px-4">{getTypeBadge(company.type)}</td>
-                        <td className="py-3 px-4">{getVerificationBadge(company.verificationStatus)}</td>
+                        <td className="py-3 px-4">{getVerificationBadge(company.approvalStatus)}</td>
                         <td className="py-3 px-4 text-sm text-gray-700">{company.planName}</td>
                         <td className="py-3 px-4">
                           <div className="flex justify-end gap-2">

@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 import crypto from 'crypto';
+import { getRequestRateKey, rateLimitByKey } from '@/lib/rateLimit';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export async function POST(request: NextRequest) {
+  const limiter = rateLimitByKey(`forgot-password:${getRequestRateKey(request)}`, 8, 60_000);
+  if (!limiter.allowed) {
+    return NextResponse.json(
+      { error: 'Muitas tentativas. Aguarde alguns instantes.' },
+      { status: 429 }
+    );
+  }
   const body = await request.json();
-  const email = typeof body.email === 'string' ? body.email.trim() : '';
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   if (!email) {
     return NextResponse.json({ error: 'E-mail é obrigatório.' }, { status: 400 });
   }

@@ -57,6 +57,25 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
+    const protectedKeys = new Set([
+      'approvalStatus',
+      'billingStatus',
+      'billingManuallyApproved',
+      'billingCustomerId',
+      'billingSubscriptionId',
+      'verificationStatus',
+      'plan',
+      'type',
+      'role',
+      'companyId',
+    ]);
+    const attemptedProtected = Object.keys(body || {}).filter((k) => protectedKeys.has(k));
+    if (attemptedProtected.length > 0) {
+      return NextResponse.json(
+        { error: `Campos protegidos não podem ser alterados: ${attemptedProtected.join(', ')}` },
+        { status: 403 }
+      );
+    }
     const { name, cnpj, address, city, state, zipCode, description, ownerName, ownerPhone, sellerRadius, sellerReceiveAll, sellerCategories } = body;
 
     const company = await prisma.company.findUnique({

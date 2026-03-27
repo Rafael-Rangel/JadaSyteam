@@ -12,6 +12,13 @@ type SubscriptionData = {
   plan: string;
   planName: string;
   planPrice: number;
+  billing?: {
+    provider?: string | null;
+    status?: string | null;
+    cycle?: string | null;
+    nextDueDate?: string | null;
+    subscriptionId?: string | null;
+  };
   limits: { users: number; requestsPerMonth: number };
   usage: { users: number; requestsThisMonth: number };
 };
@@ -25,6 +32,11 @@ const PLAN_FEATURES: Record<string, string[]> = {
 export default function SubscriptionPage() {
   const [data, setData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+  const [payLink, setPayLink] = useState<string | null>(null);
+  const [period, setPeriod] = useState<'monthly' | 'semiannually' | 'yearly'>('monthly');
+  const [billingType, setBillingType] = useState<'PIX' | 'BOLETO' | 'CREDIT_CARD'>('PIX');
 
   useEffect(() => {
     fetch('/api/company/subscription')
@@ -33,6 +45,35 @@ export default function SubscriptionPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handleStartPayment = async () => {
+    setPayError(null);
+    setPayLink(null);
+    setPaying(true);
+    try {
+      const res = await fetch('/api/billing/asaas/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ period, billingType }),
+      });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPayError(out.error || 'Erro ao criar cobrança.');
+        setPaying(false);
+        return;
+      }
+      const link = out?.payment?.invoiceUrl || out?.payment?.bankSlipUrl || null;
+      setPayLink(link);
+      // refresh subscription data
+      fetch('/api/company/subscription')
+        .then((r) => (r.ok ? r.json() : null))
+        .then(setData)
+        .catch(() => {});
+    } catch {
+      setPayError('Erro ao iniciar cobrança.');
+    }
+    setPaying(false);
+  };
 
   if (loading) {
     return (
@@ -82,7 +123,9 @@ export default function SubscriptionPage() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">{data.planName}</h2>
                 <div className="flex items-center space-x-2">
-                  <span className="badge badge-success">Ativa</span>
+                  <span className={`badge ${data.billing?.status === 'active' ? 'badge-success' : data.billing?.status === 'past_due' ? 'badge-danger' : 'badge-warning'}`}>
+                    {data.billing?.status === 'active' ? 'Ativa' : data.billing?.status === 'past_due' ? 'Em atraso' : 'Pendente'}
+                  </span>
                 </div>
               </div>
               <div className="text-right">
@@ -142,15 +185,42 @@ export default function SubscriptionPage() {
 
           <Card className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Método de Pagamento</h2>
-            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <div className="flex items-center space-x-3">
-                <CreditCard className="w-8 h-8 text-gray-400" />
-                <div>
-                  <p className="font-medium text-gray-900">Pagamento e cobrança</p>
-                  <p className="text-sm text-gray-600">Integração com gateway de pagamento em breve. Entre em contato para alterar plano ou forma de pagamento.</p>
+            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-3">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center space-x-3">
+                  <CreditCard className="w-8 h-8 text-gray-400" />
+                  <div>
+                    <p className="font-medium text-gray-900">Cobrança via Asaas</p>
+                    <p className="text-sm text-gray-600">
+                      {data.billing?.subscriptionId ? `Assinatura: ${data.billing.subscriptionId}` : 'Nenhuma assinatura ativa no provedor ainda.'}
+                      {data.billing?.nextDueDate ? ` · Próximo vencimento: ${new Date(data.billing.nextDueDate).toLocaleDateString('pt-BR')}` : ''}
+                    </p>
+                  </div>
                 </div>
               </div>
-              <Button variant="outline" disabled title="Em breve">Alterar</Button>
+
+              {payError && <p className="text-sm text-danger-700">{payError}</p>}
+              {payLink && (
+                <p className="text-sm">
+                  Link da cobrança: <a className="text-primary-600 underline" href={payLink} target="_blank" rel="noreferrer">abrir</a>
+                </p>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <select className="input" value={period} onChange={(e) => setPeriod(e.target.value as any)}>
+                  <option value="monthly">Mensal</option>
+                  <option value="semiannually">6 meses</option>
+                  <option value="yearly">Anual</option>
+                </select>
+                <select className="input" value={billingType} onChange={(e) => setBillingType(e.target.value as any)}>
+                  <option value="PIX">PIX</option>
+                  <option value="BOLETO">Boleto</option>
+                  <option value="CREDIT_CARD">Cartão de crédito</option>
+                </select>
+                <Button onClick={handleStartPayment} isLoading={paying}>
+                  Gerar cobrança
+                </Button>
+              </div>
             </div>
           </Card>
 

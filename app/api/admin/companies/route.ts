@@ -56,6 +56,8 @@ export async function GET(request: NextRequest) {
     plan: c.plan,
     planName: nameBySlug[c.plan] ?? getFallbackName(c.plan),
     verificationStatus: c.verificationStatus ?? 'pending',
+    approvalStatus: c.approvalStatus ?? 'pending',
+    billingStatus: c.billingStatus ?? null,
     verifiedAt: c.verifiedAt?.toISOString() ?? null,
     createdAt: c.createdAt,
     usersCount: c._count.users,

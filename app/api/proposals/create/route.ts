@@ -3,15 +3,16 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getPlanBySlugOrFallback } from '@/lib/planService';
+import { requireActiveBilling } from '@/lib/requireActiveBilling';
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const access = await requireActiveBilling();
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: access.context.companyId },
   });
   if (!company || (company.type !== 'seller' && company.type !== 'both')) {
     return NextResponse.json({ error: 'Empresa não é vendedora' }, { status: 403 });
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     if (!req) {
       return NextResponse.json({ error: 'Requisição não encontrada' }, { status: 404 });
     }
-    if (req.buyerId === session.user.companyId) {
+    if (req.buyerId === access.context.companyId) {
       return NextResponse.json({ error: 'Não é possível enviar proposta para sua própria requisição' }, { status: 400 });
     }
     if (req.status !== 'open' && req.status !== 'receiving') {
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     const existing = await prisma.proposal.findFirst({
       where: {
         requestId,
-        sellerId: session.user.companyId,
+        sellerId: access.context.companyId,
       },
     });
     if (existing) {
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
     const proposalsThisMonth = await prisma.proposal.count({
       where: {
         sellerId: session.user.companyId,
+        // guarded by active billing helper
         createdAt: { gte: startOfMonth },
       },
     });
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
     await prisma.proposal.create({
       data: {
         requestId,
-        sellerId: session.user.companyId,
+        sellerId: access.context.companyId,
         price: String(price),
         deliveryDays: String(deliveryDays),
         details: details?.trim() || null,

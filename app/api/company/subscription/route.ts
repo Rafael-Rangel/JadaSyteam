@@ -45,6 +45,13 @@ export async function GET() {
     planName: planData.name,
     planPrice: planData.price,
     verificationStatus: company.verificationStatus ?? 'pending',
+    billing: {
+      provider: company.billingProvider ?? null,
+      status: company.billingStatus ?? null,
+      cycle: company.billingCycle ?? null,
+      nextDueDate: company.billingNextDueDate?.toISOString() ?? null,
+      subscriptionId: company.billingSubscriptionId ?? null,
+    },
     limits: {
       users: planData.usersLimit,
       requestsPerMonth: planData.requestsPerMonthLimit,

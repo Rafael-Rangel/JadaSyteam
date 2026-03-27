@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getPlanBySlugOrFallback } from '@/lib/planService';
+import { requireActiveBilling } from '@/lib/requireActiveBilling';
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -67,13 +68,13 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const access = await requireActiveBilling();
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: access.context.companyId },
   });
   if (!company || (company.type !== 'buyer' && company.type !== 'both')) {
     return NextResponse.json({ error: 'Empresa não é compradora' }, { status: 403 });
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   const requestsThisMonth = await prisma.request.count({
     where: {
-      buyerId: session.user.companyId,
+      buyerId: access.context.companyId,
       createdAt: { gte: startOfMonth },
     },
   });
@@ -137,7 +138,7 @@ export async function POST(request: Request) {
         city: city.trim(),
         state: state.trim(),
         isPublic: isPublic !== false,
-        buyerId: session.user.companyId,
+        buyerId: access.context.companyId,
         expiresAt,
       },
     });

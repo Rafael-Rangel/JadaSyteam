@@ -16,6 +16,7 @@ model User {
   name      String
   phone     String?
   role      String   // owner, manager, employee (buyer) | owner, manager, seller (seller) | admin
+  deletedAt DateTime?
   companyId String
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -55,6 +56,18 @@ model Company {
   cnpj                 String   // obrigatório; 14 dígitos
   type                 String   // buyer, seller, both
   plan                 String   @default("starter") // slug do plano (Plan.slug)
+  billingProvider      String?  // ex: 'asaas'
+  billingStatus        String?  // trialing, pending, active, past_due, canceled
+  billingCycle         String?  // MONTHLY, SEMIANNUALLY, YEARLY
+  billingCustomerId    String?  // id do cliente no provedor (ex: cus_... Asaas)
+  billingSubscriptionId String? // id da assinatura no provedor (ex: sub_... Asaas)
+  billingNextDueDate   DateTime?
+  billingLastEventAt   DateTime?
+  billingLastPayload   Json?
+  billingManuallyApproved Boolean? @default(false) // aprovação manual para liberar acesso antes do webhook
+  preferredBillingType   String?  // PIX, BOLETO, CREDIT_CARD (escolhido no cadastro)
+  preferredBillingPeriod String?  // monthly, semiannually, yearly (escolhido no cadastro)
+  approvalStatus         String   @default("pending") // pending, approved, rejected (aprovação operacional)
   verificationStatus   String   @default("pending") // pending, approved, rejected
   verifiedAt           DateTime?
   verificationPayload  Json?    // resposta API ou resumo para auditoria
@@ -69,8 +82,22 @@ model Company {
   users                User[]
   requests             Request[]  @relation("BuyerCompany")
   proposals            Proposal[]
+  billingEvents        BillingEvent[]
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+}
+
+model BillingEvent {
+  id           String   @id @default(cuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  provider     String   // asaas
+  eventType    String   // PAYMENT_CONFIRMED, SUBSCRIPTION_UPDATED, etc.
+  externalId   String?  // paymentId/subscriptionId/eventId (quando existir)
+  payload      Json?
+  receivedAt   DateTime @default(now())
+
+  @@index([companyId, receivedAt])
 }
 
 model Request {

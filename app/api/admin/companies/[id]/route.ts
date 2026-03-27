@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { planSlugExists } from '@/lib/planService';
+import { billingTypeFromInput, createBillingForCompany } from '@/lib/asaasBilling';
 
 export async function GET(
   _request: Request,
@@ -23,6 +24,11 @@ export async function GET(
       cnpj: true,
       type: true,
       plan: true,
+      approvalStatus: true,
+      preferredBillingType: true,
+      preferredBillingPeriod: true,
+      billingStatus: true,
+      billingSubscriptionId: true,
       verificationStatus: true,
       verifiedAt: true,
       verificationPayload: true,
@@ -48,9 +54,18 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
-  const { plan, verificationStatus } = body as { plan?: string; verificationStatus?: string };
+  const { plan, verificationStatus, approvalStatus } = body as {
+    plan?: string;
+    verificationStatus?: string;
+    approvalStatus?: string;
+  };
 
-  const updates: { plan?: string; verificationStatus?: string; verifiedAt?: Date } = {};
+  const updates: {
+    plan?: string;
+    verificationStatus?: string;
+    approvalStatus?: string;
+    verifiedAt?: Date;
+  } = {};
   if (typeof plan === 'string' && plan.trim()) {
     const slug = plan.trim();
     const exists = await planSlugExists(slug);
@@ -66,9 +81,57 @@ export async function PATCH(
     updates.verificationStatus = verificationStatus;
     updates.verifiedAt = new Date();
   }
+  if (approvalStatus === 'approved' || approvalStatus === 'rejected' || approvalStatus === 'pending') {
+    updates.approvalStatus = approvalStatus;
+  }
+
+  const approvingViaVerification = verificationStatus === 'approved' && !approvalStatus;
+  const finalApprovalStatus = approvalStatus ?? (approvingViaVerification ? 'approved' : undefined);
+  if (finalApprovalStatus) {
+    updates.approvalStatus = finalApprovalStatus;
+  }
 
   if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: 'Nenhuma alteração enviada (plan ou verificationStatus).' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Nenhuma alteração enviada (plan, verificationStatus ou approvalStatus).' },
+      { status: 400 }
+    );
+  }
+
+  if (updates.approvalStatus === 'approved') {
+    const currentCompany = await prisma.company.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        approvalStatus: true,
+        billingSubscriptionId: true,
+        preferredBillingType: true,
+        preferredBillingPeriod: true,
+      },
+    });
+    if (!currentCompany) {
+      return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 });
+    }
+
+    const alreadyHasSubscription = !!currentCompany.billingSubscriptionId;
+    const statusWasApproved = currentCompany.approvalStatus === 'approved';
+    const needsCreateBilling = !alreadyHasSubscription && !statusWasApproved;
+
+    if (needsCreateBilling) {
+      const billingResult = await createBillingForCompany({
+        companyId: id,
+        billingType: billingTypeFromInput(currentCompany.preferredBillingType || 'BOLETO'),
+        period: currentCompany.preferredBillingPeriod || 'monthly',
+      });
+      if (!billingResult.success) {
+        return NextResponse.json(
+          {
+            error: `A cobrança não foi gerada no Asaas: ${billingResult.error}`,
+          },
+          { status: billingResult.status }
+        );
+      }
+    }
   }
 
   const company = await prisma.company.update({

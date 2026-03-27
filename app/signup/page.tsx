@@ -32,6 +32,8 @@ function SignupForm() {
     password: string;
     confirmPassword: string;
     plan: string;
+    billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD';
+    period: 'monthly' | 'semiannually' | 'yearly';
     acceptTerms: boolean;
   }>({
     companyName: '',
@@ -43,12 +45,15 @@ function SignupForm() {
     password: '',
     confirmPassword: '',
     plan: planParam,
+    billingType: 'PIX',
+    period: 'monthly',
     acceptTerms: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState<{ message: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/plans')
@@ -127,7 +132,7 @@ function SignupForm() {
     setIsLoading(true);
     setErrors({});
     try {
-      const res = await fetch('/api/auth/signup', {
+      const res = await fetch('/api/auth/signup-with-billing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -139,6 +144,8 @@ function SignupForm() {
           phone: formData.phone,
           password: formData.password,
           plan: formData.plan,
+          billingType: formData.billingType,
+          period: formData.period,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -147,23 +154,54 @@ function SignupForm() {
         setIsLoading(false);
         return;
       }
-      const signInRes = await signIn('credentials', {
-        email: formData.email.trim().toLowerCase(),
-        password: formData.password,
-        redirect: false,
+      setSignupSuccess({
+        message: data.message ?? 'Conta criada com sucesso. Aguarde a aprovação da empresa.',
       });
-      if (signInRes?.error) {
-        router.push('/login');
-        return;
-      }
-      const dashboard = formData.companyType === 'seller' ? '/seller/dashboard' : '/buyer/dashboard';
-      router.push(dashboard);
-      router.refresh();
     } catch {
       setErrors({ email: 'Erro ao criar conta. Tente novamente.' });
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
+
+  if (signupSuccess) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow py-12 bg-gray-50">
+          <div className="max-w-2xl w-full mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-6">
+              <Link href="/">
+                <Image src="/logo.jpg" alt="JADA" width={120} height={44} className="h-11 w-auto mx-auto" />
+              </Link>
+            </div>
+            <Card>
+              <div className="text-center space-y-4">
+                <div className="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center mx-auto">
+                  <Check className="w-8 h-8 text-primary-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">Cadastro concluído</h2>
+                <p className="text-gray-600">
+                  {signupSuccess.message}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Após a aprovação da empresa, a cobrança será gerada e ficará disponível na tela de pagamento.
+                </p>
+                <div className="pt-4 border-t">
+                  <Link href="/login">
+                    <Button variant="outline">Ir para login</Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
+            <p className="mt-6 text-center text-sm text-gray-600">
+              Já pagou? <Link href="/login" className="text-primary-600 font-medium">Fazer login</Link>
+            </p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -400,6 +438,36 @@ function SignupForm() {
                         </button>
                       ))
                     )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Forma de pagamento</label>
+                      <select
+                        className="input w-full"
+                        value={formData.billingType}
+                        onChange={(e) => setFormData({ ...formData, billingType: e.target.value as 'PIX' | 'BOLETO' | 'CREDIT_CARD' })}
+                      >
+                        <option value="PIX">PIX</option>
+                        <option value="BOLETO">Boleto</option>
+                        <option value="CREDIT_CARD">Cartão de crédito</option>
+                      </select>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {formData.billingType === 'CREDIT_CARD' && 'Você será redirecionado à página segura do Asaas para informar o cartão.'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Período da assinatura</label>
+                      <select
+                        className="input w-full"
+                        value={formData.period}
+                        onChange={(e) => setFormData({ ...formData, period: e.target.value as 'monthly' | 'semiannually' | 'yearly' })}
+                      >
+                        <option value="monthly">Mensal</option>
+                        <option value="semiannually">6 meses</option>
+                        <option value="yearly">Anual</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div className="flex items-start space-x-2">

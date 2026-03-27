@@ -2,15 +2,16 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireActiveBilling } from '@/lib/requireActiveBilling';
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const access = await requireActiveBilling();
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: access.context.companyId },
   });
   if (!company) {
     return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 403 });
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
     if (!proposal) {
       return NextResponse.json({ error: 'Proposta não encontrada' }, { status: 404 });
     }
-    if (proposal.request.buyerId !== session.user.companyId) {
+    if (proposal.request.buyerId !== access.context.companyId) {
       return NextResponse.json({ error: 'Apenas o comprador pode aceitar esta proposta' }, { status: 403 });
     }
 

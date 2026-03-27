@@ -12,7 +12,7 @@ export async function GET() {
   }
 
   const users = await prisma.user.findMany({
-    where: { companyId: session.user.companyId },
+    where: { companyId: session.user.companyId, deletedAt: null },
     select: {
       id: true,
       name: true,
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
   const company = await prisma.company.findUnique({
     where: { id: session.user.companyId },
-    include: { users: true },
+    include: { users: { where: { deletedAt: null } } },
   });
   if (!company) {
     return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 });

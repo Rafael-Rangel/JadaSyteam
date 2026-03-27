@@ -14,6 +14,7 @@ const ADMIN_EMAIL = 'admin@jada.com.br';
 const ADMIN_NAME = 'Administrador';
 const ADMIN_PASSWORD = 'JadaAdmin2025!';
 const COMPANY_NAME = 'JADA Administração';
+const COMPANY_CNPJ = '00000000000000';
 
 async function main() {
   const existing = await prisma.user.findUnique({
@@ -32,6 +33,7 @@ async function main() {
   const company = await prisma.company.create({
     data: {
       name: COMPANY_NAME,
+      cnpj: COMPANY_CNPJ,
       type: 'both',
       plan: 'enterprise',
     },

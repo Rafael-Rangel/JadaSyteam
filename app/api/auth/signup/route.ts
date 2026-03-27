@@ -7,9 +7,17 @@ import {
   isValidCnpjFormat,
   verifyCnpjWithBrasilApi,
 } from '@/lib/cnpjVerification';
+import { getRequestRateKey, rateLimitByKey } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
+    const limiter = rateLimitByKey(`signup:${getRequestRateKey(request)}`, 10, 60_000);
+    if (!limiter.allowed) {
+      return NextResponse.json(
+        { error: 'Muitas tentativas de cadastro. Tente novamente em instantes.' },
+        { status: 429 }
+      );
+    }
     const body = await request.json();
     const {
       companyName,
@@ -25,6 +33,12 @@ export async function POST(request: Request) {
     if (!companyName?.trim() || !companyType || !ownerName?.trim() || !email?.trim() || !password) {
       return NextResponse.json(
         { error: 'Dados obrigatórios faltando (empresa, tipo, nome, e-mail, senha).' },
+        { status: 400 }
+      );
+    }
+    if (!['buyer', 'seller', 'both'].includes(String(companyType))) {
+      return NextResponse.json(
+        { error: 'Tipo de empresa inválido. Use buyer, seller ou both.' },
         { status: 400 }
       );
     }
