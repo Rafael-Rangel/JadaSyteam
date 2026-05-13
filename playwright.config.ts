@@ -25,5 +25,13 @@ export default defineConfig({
       },
       dependencies: ['setup'],
     },
+    {
+      name: 'signup-guest',
+      testMatch: /signup-billing-flow\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+      },
+    },
   ],
 });
