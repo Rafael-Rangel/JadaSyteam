@@ -7,6 +7,7 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma';
+import { PLATFORM_COMPANY_CNPJ } from '../lib/platformCompany';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -14,7 +15,7 @@ const ADMIN_EMAIL = 'admin@jada.com.br';
 const ADMIN_NAME = 'Administrador';
 const ADMIN_PASSWORD = 'JadaAdmin2025!';
 const COMPANY_NAME = 'JADA Administração';
-const COMPANY_CNPJ = '00000000000000';
+const COMPANY_CNPJ = PLATFORM_COMPANY_CNPJ;
 
 async function main() {
   const existing = await prisma.user.findUnique({

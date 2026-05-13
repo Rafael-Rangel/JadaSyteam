@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAllPlans } from '@/lib/planService';
 import { getPlanName as getFallbackName } from '@/lib/plans';
+import { andExcludePlatformCompany } from '@/lib/platformCompany';
+import type { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -18,7 +20,7 @@ export async function GET(request: NextRequest) {
   const plan = searchParams.get('plan')?.trim() || '';
   const verificationStatus = searchParams.get('verificationStatus')?.trim() || '';
 
-  const where: Record<string, unknown> = {};
+  const where: Prisma.CompanyWhereInput = {};
   if (search) {
     where.OR = [
       { name: { contains: search, mode: 'insensitive' } },
@@ -34,7 +36,7 @@ export async function GET(request: NextRequest) {
   const [allPlans, companies] = await Promise.all([
     getAllPlans(),
     prisma.company.findMany({
-      where: Object.keys(where).length ? where : undefined,
+      where: andExcludePlatformCompany(where),
       orderBy: { createdAt: 'desc' },
       include: {
         _count: {

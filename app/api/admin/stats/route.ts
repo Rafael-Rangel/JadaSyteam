@@ -4,6 +4,11 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAllPlans } from '@/lib/planService';
 import { getPlanName as getFallbackName, getPlanPrice as getFallbackPrice } from '@/lib/plans';
+import {
+  andExcludePlatformCompany,
+  excludePlatformCompanyUsersWhere,
+  excludePlatformCompanyWhere,
+} from '@/lib/platformCompany';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -25,15 +30,17 @@ export async function GET() {
     recentCompanies,
   ] = await Promise.all([
     getAllPlans(),
-    prisma.company.count(),
-    prisma.user.count(),
+    prisma.company.count({ where: excludePlatformCompanyWhere }),
+    prisma.user.count({ where: excludePlatformCompanyUsersWhere }),
     prisma.request.count({ where: { createdAt: { gte: startOfMonth } } }),
     prisma.proposal.count({ where: { createdAt: { gte: startOfMonth } } }),
     prisma.company.groupBy({
       by: ['plan'],
+      where: excludePlatformCompanyWhere,
       _count: { id: true },
     }),
     prisma.company.findMany({
+      where: excludePlatformCompanyWhere,
       take: 5,
       orderBy: { createdAt: 'desc' },
       select: {

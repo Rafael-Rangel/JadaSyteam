@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { excludePlatformCompanyWhere } from '@/lib/platformCompany';
 
 export async function GET(
   _request: NextRequest,
@@ -138,7 +139,9 @@ export async function DELETE(
   }
 
   const companiesWithPlan = await prisma.company.count({
-    where: { plan: plan.slug },
+    where: {
+      AND: [{ plan: plan.slug }, excludePlatformCompanyWhere],
+    },
   });
   if (companiesWithPlan > 0) {
     return NextResponse.json(

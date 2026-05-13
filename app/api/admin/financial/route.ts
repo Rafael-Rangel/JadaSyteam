@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAllPlans } from '@/lib/planService';
 import { getPlanName as getFallbackName, getPlanPrice as getFallbackPrice } from '@/lib/plans';
+import { excludePlatformCompanyWhere } from '@/lib/platformCompany';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -16,9 +17,11 @@ export async function GET() {
     getAllPlans(),
     prisma.company.groupBy({
       by: ['plan'],
+      where: excludePlatformCompanyWhere,
       _count: { id: true },
     }),
     prisma.company.findMany({
+      where: excludePlatformCompanyWhere,
       orderBy: { createdAt: 'desc' },
       take: 20,
       select: {
