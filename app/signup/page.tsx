@@ -124,13 +124,29 @@ function SignupForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+
     if (!formData.acceptTerms) {
-      setErrors({ acceptTerms: 'Você deve aceitar os termos de uso' });
+      setErrors({ acceptTerms: 'Você deve aceitar os termos de uso para continuar.' });
+      return;
+    }
+
+    if (plansLoaded && plans.length > 0 && !plans.some((p) => p.slug === formData.plan)) {
+      setErrors({ plan: 'Selecione um dos planos acima antes de finalizar.' });
+      return;
+    }
+
+    if (!plansLoaded) {
+      setErrors({ plan: 'Aguarde o carregamento dos planos.' });
+      return;
+    }
+
+    if (plans.length === 0) {
+      setErrors({ plan: 'Não há planos disponíveis no momento. Tente mais tarde.' });
       return;
     }
 
     setIsLoading(true);
-    setErrors({});
     try {
       const res = await fetch('/api/auth/signup-with-billing', {
         method: 'POST',
@@ -252,7 +268,7 @@ function SignupForm() {
           </div>
 
           <Card>
-            <form onSubmit={handleSubmit}>
+            <form noValidate onSubmit={handleSubmit}>
               {/* Step 1: Company Info */}
               {step === 1 && (
                 <div className="space-y-4">
@@ -413,6 +429,12 @@ function SignupForm() {
                     <p className="text-neutral-600">Selecione o plano que melhor se adapta à sua empresa</p>
                   </div>
 
+                  {errors.plan && (
+                    <p className="rounded-lg border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-800">
+                      {errors.plan}
+                    </p>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     {!plansLoaded ? (
                       <p className="text-neutral-500 col-span-full">Carregando planos...</p>
@@ -475,9 +497,17 @@ function SignupForm() {
                       type="checkbox"
                       id="acceptTerms"
                       checked={formData.acceptTerms}
-                      onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, acceptTerms: e.target.checked });
+                        if (e.target.checked && errors.acceptTerms) {
+                          setErrors((prev) => {
+                            const next = { ...prev };
+                            delete next.acceptTerms;
+                            return next;
+                          });
+                        }
+                      }}
                       className="mt-1 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-                      required
                     />
                     <label htmlFor="acceptTerms" className="text-sm text-neutral-600">
                       Eu aceito os{' '}
@@ -491,7 +521,14 @@ function SignupForm() {
                     </label>
                   </div>
                   {errors.acceptTerms && (
-                    <p className="text-sm text-danger-600">{errors.acceptTerms}</p>
+                    <p className="rounded-lg border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-800">
+                      {errors.acceptTerms}
+                    </p>
+                  )}
+                  {errors.email && (
+                    <p className="rounded-lg border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-800">
+                      {errors.email}
+                    </p>
                   )}
 
                   <div className="flex space-x-4">
