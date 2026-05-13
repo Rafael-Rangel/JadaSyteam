@@ -79,11 +79,11 @@ export default function Sidebar({
           </Link>
           <button
             type="button"
-            className="lg:hidden text-neutral-500 hover:text-neutral-700 p-1 rounded-md hover:bg-neutral-100"
+            className="inline-flex h-10 w-10 touch-manipulation items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 lg:hidden"
             onClick={onClose}
             aria-label="Fechar navegação"
           >
-            <X className="w-4 h-4" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
@@ -96,7 +96,7 @@ export default function Sidebar({
                 href={item.href}
                 onClick={onClose}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex items-center gap-2.5 h-10 px-3 rounded-md text-sm font-medium transition-colors focus-ring ${
+                className={`relative flex min-h-11 touch-manipulation items-center gap-2.5 rounded-md px-3 text-sm font-medium transition-colors focus-ring lg:min-h-10 lg:h-10 ${
                   active
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'

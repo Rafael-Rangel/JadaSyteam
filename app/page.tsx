@@ -11,14 +11,14 @@ export default function Home() {
       <Header />
 
       <main className="flex-grow">
-        <section className="border-b border-neutral-200 bg-white py-16 md:py-20">
+        <section className="border-b border-neutral-200 bg-white py-12 sm:py-16 md:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center justify-between gap-12 lg:flex-row">
               <div className="flex-1 text-center lg:text-left">
                 <p className="mb-3 text-sm font-medium uppercase tracking-wide text-primary-600">
                   Cotação B2B
                 </p>
-                <h1 className="mb-6 text-3xl font-bold text-neutral-900 md:text-5xl lg:text-6xl">
+                <h1 className="mb-6 text-2xl font-bold leading-tight text-neutral-900 sm:text-3xl md:text-5xl lg:text-6xl">
                   Conecte compradores e vendedores
                   <br />
                   <span className="text-primary-600">de forma inteligente</span>

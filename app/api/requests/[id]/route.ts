@@ -47,6 +47,7 @@ export async function GET(
       createdAt: request.createdAt.toISOString(),
       expiresAt: request.expiresAt?.toISOString(),
       buyer: request.buyer,
+      attachments: request.attachments ?? null,
       proposals: request.proposals.map((p) => ({
         id: p.id,
         price: p.price,
@@ -78,6 +79,7 @@ export async function GET(
     state: request.state,
     status: request.status,
     buyer: request.buyer,
+    attachments: request.attachments ?? null,
     proposals: [],
     myProposal: myProposal ? { id: myProposal.id, status: myProposal.status } : null,
   });

@@ -8,6 +8,7 @@ import Modal from '@/components/Modal';
 import PageHeader from '@/components/ui/PageHeader';
 import { requestStatusBadge } from '@/lib/dashboardUi';
 import { Package, MapPin, Calendar, Check } from 'lucide-react';
+import RequestAttachmentsView, { type RequestAttachmentItem } from '@/components/RequestAttachmentsView';
 
 type ProposalItem = {
   id: string;
@@ -31,6 +32,7 @@ type RequestDetail = {
   state: string;
   status: string;
   proposals: ProposalItem[];
+  attachments?: RequestAttachmentItem[] | null;
 };
 
 export default function RequestDetailPage() {
@@ -115,6 +117,7 @@ export default function RequestDetailPage() {
             <h2 className="mb-4 text-lg font-semibold text-neutral-900">Detalhes</h2>
             <div className="space-y-4">
               <p className="text-neutral-700">{request.description}</p>
+              <RequestAttachmentsView attachments={request.attachments} />
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-neutral-400" />

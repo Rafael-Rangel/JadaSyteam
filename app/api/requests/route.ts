@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getPlanBySlugOrFallback } from '@/lib/planService';
 import { requireActiveBilling } from '@/lib/requireActiveBilling';
+import { validateRequestAttachments } from '@/lib/requestAttachments';
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -114,7 +115,17 @@ export async function POST(request: Request) {
       city,
       state,
       isPublic,
+      attachments: attachmentsRaw,
     } = body;
+
+    let attachments: object | undefined;
+    try {
+      const parsed = validateRequestAttachments(attachmentsRaw);
+      if (parsed) attachments = parsed;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Anexos inválidos.';
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
 
     if (!title?.trim() || !description?.trim() || !quantity || !category || !deliveryDate || !address?.trim() || !city?.trim() || !state?.trim()) {
       return NextResponse.json(
@@ -140,6 +151,7 @@ export async function POST(request: Request) {
         isPublic: isPublic !== false,
         buyerId: access.context.companyId,
         expiresAt,
+        ...(attachments !== undefined ? { attachments } : {}),
       },
     });
 

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
@@ -16,6 +16,13 @@ export const metadata: Metadata = {
   icons: { icon: "/logo.jpg", apple: "/logo.jpg" },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#f5f5f4",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -23,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={inter.variable}>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased pb-[env(safe-area-inset-bottom,0px)]">
         <Providers>{children}</Providers>
       </body>
     </html>

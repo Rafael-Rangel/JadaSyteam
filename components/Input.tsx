@@ -15,9 +15,9 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size' 
 }
 
 const sizeClass: Record<InputSize, string> = {
-  sm: 'h-8 text-sm',
-  md: 'h-10 text-sm',
-  lg: 'h-11 text-base',
+  sm: 'h-10 min-h-10 text-base md:h-8 md:min-h-0 md:text-sm',
+  md: '',
+  lg: 'h-12 min-h-12 text-base md:h-11 md:min-h-0',
 };
 
 const Input = forwardRef<HTMLInputElement, InputProps>(function Input(

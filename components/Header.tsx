@@ -133,7 +133,7 @@ export default function Header({ userType: propUserType = null, userName: propUs
                 </Link>
                 <Link
                   href="/signup"
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-md shrink-0 touch-manipulation"
                 >
                   Criar Conta
                 </Link>
@@ -142,7 +142,8 @@ export default function Header({ userType: propUserType = null, userName: propUs
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-neutral-100"
+                  type="button"
+                  className="flex min-h-11 touch-manipulation items-center space-x-2 rounded-lg px-2 py-1.5 hover:bg-neutral-100 md:min-h-0 md:px-3"
                 >
                   <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
@@ -188,38 +189,90 @@ export default function Header({ userType: propUserType = null, userName: propUs
 
             {/* Mobile menu button */}
             <button
+              type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg text-neutral-700 hover:bg-neutral-100"
+              aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="header-mobile-nav"
+              className="inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg text-neutral-700 hover:bg-neutral-100 md:hidden"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile menu */}
-        {mobileMenuOpen && !isPublicPage && (
-          <div className="md:hidden py-4 border-t border-neutral-200">
-            <div className="flex flex-col space-y-1">
-              {links.map((link) => {
-                const Icon = link.icon;
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium ${
-                      isActive
-                        ? 'bg-primary-50 text-primary-700'
-                        : 'text-neutral-700 hover:bg-neutral-100'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{link.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+        {/* Menu mobile: público (Planos, Sobre, FAQ, Entrar) ou área logada */}
+        {mobileMenuOpen && (
+          <div id="header-mobile-nav" className="border-t border-neutral-200 py-2 md:hidden">
+            {isPublicPage ? (
+              <div className="flex flex-col gap-0.5">
+                <Link
+                  href="/plans"
+                  className="flex min-h-11 items-center rounded-lg px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Planos
+                </Link>
+                <Link
+                  href="/about"
+                  className="flex min-h-11 items-center rounded-lg px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sobre
+                </Link>
+                <Link
+                  href="/faq"
+                  className="flex min-h-11 items-center rounded-lg px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  FAQ
+                </Link>
+                <Link
+                  href="/contact"
+                  className="flex min-h-11 items-center rounded-lg px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Contato
+                </Link>
+                <div className="my-2 border-t border-neutral-100" />
+                <Link
+                  href="/login"
+                  className="flex min-h-11 items-center rounded-lg px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Entrar
+                </Link>
+                <Link
+                  href="/signup"
+                  className="btn btn-primary mx-4 mt-1 min-h-11 justify-center touch-manipulation"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Criar conta
+                </Link>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-0.5">
+                {links.map((link) => {
+                  const Icon = link.icon;
+                  const isActive = pathname === link.href;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex min-h-11 items-center space-x-3 rounded-lg px-4 text-sm font-medium ${
+                        isActive
+                          ? 'bg-primary-50 text-primary-700'
+                          : 'text-neutral-700 hover:bg-neutral-100'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span>{link.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </nav>

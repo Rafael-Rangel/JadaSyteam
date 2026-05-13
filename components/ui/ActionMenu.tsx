@@ -48,7 +48,7 @@ export default function ActionMenu({ items, label = 'Mais ações', align = 'rig
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center justify-center h-8 w-8 rounded-md text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 focus-ring"
+        className="inline-flex h-10 w-10 touch-manipulation items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 focus-ring sm:h-8 sm:w-8"
       >
         <MoreHorizontal className="w-4 h-4" />
       </button>
@@ -69,7 +69,7 @@ export default function ActionMenu({ items, label = 'Mais ações', align = 'rig
                 setOpen(false);
                 it.onClick();
               }}
-              className={`w-full text-left flex items-center gap-2 px-3 py-2 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`flex w-full items-center gap-2 px-3 py-3 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:py-2 ${
                 it.danger
                   ? 'text-danger-700 hover:bg-danger-50'
                   : 'text-neutral-700 hover:bg-neutral-100'

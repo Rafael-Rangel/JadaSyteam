@@ -22,9 +22,9 @@ export default function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav aria-label="breadcrumb" className="mb-2 flex items-center gap-1.5 text-xs text-neutral-500">
+          <nav aria-label="breadcrumb" className="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-neutral-500">
             {breadcrumbs.map((c, i) => (
               <span key={`${c.label}-${i}`} className="flex items-center gap-1.5">
                 {c.href ? (
@@ -39,13 +39,19 @@ export default function PageHeader({
             ))}
           </nav>
         )}
-        <h1 className="text-2xl font-semibold text-neutral-900 tracking-tight">{title}</h1>
+        <h1 className="text-balance text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">
+          {title}
+        </h1>
         {description && (
-          <p className="mt-1 text-sm text-neutral-500 max-w-2xl">{description}</p>
+          <p className="mt-1 max-w-2xl text-sm text-neutral-500 sm:text-[15px]">{description}</p>
         )}
         {children}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

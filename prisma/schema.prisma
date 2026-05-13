@@ -136,6 +136,8 @@ model Request {
   city        String
   state       String
   isPublic    Boolean   @default(true)
+  /** Anexos opcionais: [{ name, mimeType, dataUrl }] — data URLs base64 (PDF/imagens), ver limites na API. */
+  attachments Json?
   status      String    @default("open") // open, receiving, selected, closed
   buyerId     String
   buyer       Company   @relation("BuyerCompany", fields: [buyerId], references: [id], onDelete: Cascade)

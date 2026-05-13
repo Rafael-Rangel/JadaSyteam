@@ -18,10 +18,10 @@ interface ModalProps {
 }
 
 const sizeClass: Record<Size, string> = {
-  sm: 'max-w-[420px]',
-  md: 'max-w-[560px]',
-  lg: 'max-w-[720px]',
-  xl: 'max-w-[960px]',
+  sm: 'max-w-full sm:max-w-[420px]',
+  md: 'max-w-full sm:max-w-[560px]',
+  lg: 'max-w-full sm:max-w-[720px]',
+  xl: 'max-w-full sm:max-w-[960px]',
 };
 
 export default function Modal({
@@ -62,21 +62,24 @@ export default function Modal({
         onClick={closeOnBackdrop ? onClose : undefined}
         aria-hidden="true"
       />
-      <div className="flex min-h-full items-center justify-center p-4">
+      <div className="flex min-h-full items-end justify-center p-0 sm:items-center sm:p-4">
         <div
           ref={containerRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby={title ? titleId : undefined}
           aria-describedby={description ? descId : undefined}
-          className={`relative bg-white rounded-xl shadow-lg w-full ${sizeClass[size]} max-h-[calc(100vh-2rem)] flex flex-col animate-scale-in border border-neutral-200`}
+          className={`relative flex w-full flex-col border border-neutral-200 bg-white shadow-lg animate-scale-in
+            max-h-[min(100dvh,100vh)] sm:max-h-[calc(100vh-2rem)]
+            rounded-t-2xl sm:rounded-xl
+            ${sizeClass[size]}`}
           onClick={(e) => e.stopPropagation()}
         >
           {(title || showCloseButton) && (
-            <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-neutral-200 sticky top-0 bg-white rounded-t-xl">
+            <div className="flex items-start justify-between gap-4 border-b border-neutral-200 bg-white px-4 py-4 sm:px-6 sm:py-4 sticky top-0 z-10 rounded-t-2xl sm:rounded-t-xl">
               <div className="min-w-0 flex-1">
                 {title && (
-                  <h3 id={titleId} className="text-base font-semibold text-neutral-900 truncate">
+                  <h3 id={titleId} className="truncate text-base font-semibold text-neutral-900 sm:text-lg">
                     {title}
                   </h3>
                 )}
@@ -91,20 +94,20 @@ export default function Modal({
                   type="button"
                   onClick={onClose}
                   aria-label="Fechar"
-                  className="text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-md p-1 transition-colors"
+                  className="-m-1 shrink-0 rounded-md p-2.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 touch-manipulation"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="h-5 w-5" />
                 </button>
               )}
             </div>
           )}
 
-          <div className="px-6 py-5 overflow-y-auto scrollbar-thin">
+          <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin sm:px-6 sm:py-5">
             {children}
           </div>
 
           {footer && (
-            <div className="px-6 py-4 border-t border-neutral-200 bg-neutral-50/50 rounded-b-xl sticky bottom-0">
+            <div className="sticky bottom-0 z-10 rounded-b-2xl border-t border-neutral-200 bg-neutral-50/95 px-4 py-4 backdrop-blur-sm sm:rounded-b-xl sm:px-6 sm:py-4">
               {footer}
             </div>
           )}

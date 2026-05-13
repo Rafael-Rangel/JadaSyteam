@@ -65,8 +65,8 @@ export default function DataTable<T>({
   );
 
   return (
-    <div className={`surface overflow-hidden ${className}`}>
-      <div className="overflow-x-auto scrollbar-thin">
+      <div className={`surface overflow-hidden ${className}`}>
+      <div className="touch-scroll-x overflow-x-auto scrollbar-thin">
         <table className="w-full text-sm">
           <thead
             className={`bg-neutral-50/80 ${

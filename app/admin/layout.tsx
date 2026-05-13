@@ -48,7 +48,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => signOut({ callbackUrl: '/' })}
-              className="w-full flex items-center gap-2 h-10 px-3 rounded-md text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-danger-700 transition-colors focus-ring"
+              className="flex min-h-11 w-full touch-manipulation items-center gap-2 rounded-md px-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-danger-700 focus-ring lg:min-h-10 lg:h-10"
             >
               <LogOut className="w-[18px] h-[18px] text-neutral-500" />
               <span>Sair</span>
@@ -58,17 +58,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
         <div className="flex-1 min-w-0 flex flex-col">
           {/* Topbar */}
-          <header className="sticky top-0 z-30 h-14 bg-white/80 backdrop-blur border-b border-neutral-200 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+          <header className="sticky top-0 z-30 flex h-14 min-h-[3.5rem] items-center justify-between gap-3 border-b border-neutral-200 bg-white/80 px-4 backdrop-blur sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Abrir navegação"
-                className="lg:hidden inline-flex items-center justify-center h-9 w-9 rounded-md border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 focus-ring"
+                className="inline-flex h-11 min-h-11 w-11 min-w-11 touch-manipulation items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 focus-ring lg:hidden"
               >
-                <Menu className="w-4 h-4" />
+                <Menu className="h-5 w-5" />
               </button>
-              <p className="hidden sm:block text-xs font-medium text-neutral-500">
+              <p className="hidden min-w-0 truncate text-xs font-medium text-neutral-500 sm:block">
                 Painel administrativo
               </p>
             </div>
@@ -85,7 +85,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
             <div className="max-w-7xl mx-auto w-full">{children}</div>
           </main>
         </div>

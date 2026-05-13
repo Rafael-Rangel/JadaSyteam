@@ -8,6 +8,7 @@ import Input from '@/components/Input';
 import Modal from '@/components/Modal';
 import PageHeader from '@/components/ui/PageHeader';
 import { MapPin, DollarSign, Send, Check } from 'lucide-react';
+import RequestAttachmentsView, { type RequestAttachmentItem } from '@/components/RequestAttachmentsView';
 
 type OpportunityDetail = {
   id: string;
@@ -22,6 +23,7 @@ type OpportunityDetail = {
   state: string;
   buyer: { name: string };
   myProposal: { id: string; status: string } | null;
+  attachments?: RequestAttachmentItem[] | null;
 };
 
 export default function OpportunityDetailPage() {
@@ -132,7 +134,8 @@ export default function OpportunityDetailPage() {
       <Card>
         <div className="mb-6 space-y-4">
           <p className="text-neutral-700">{opportunity.description}</p>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <RequestAttachmentsView attachments={opportunity.attachments} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
             <div>
               <p className="mb-1 text-sm text-neutral-600">Quantidade</p>
               <p className="font-semibold text-neutral-900">
@@ -191,7 +194,7 @@ export default function OpportunityDetailPage() {
         size="lg"
       >
         <form onSubmit={handleSubmitProposal} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-neutral-700">
                 Preço (R$) <span className="text-danger-500">*</span>
