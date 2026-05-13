@@ -37,10 +37,25 @@ export async function runDueDiligenceForCompany(companyId: string): Promise<DueD
   if (!company) throw new Error('Empresa não encontrada para due diligence.');
 
   const cadastral = await verifyCnpjWithCnpjWs(company.cnpj);
-  const judicial = await fetchJudicialRiskByCnpj(company.cnpj);
 
-  const riskLevel = mergeRisk(cadastral.status === 'rejected' ? 'high' : 'low', judicial.riskLevel);
-  const verificationStatus = decideVerificationStatus(cadastral.status, judicial.status, judicial.riskLevel);
+  const lastJudicial = await prisma.dueDiligenceReport.findFirst({
+    where: { companyId, kind: 'judicial', provider: 'escavador' },
+    orderBy: { createdAt: 'desc' },
+    select: { status: true, riskLevel: true },
+  });
+  const judicialStatusFallback =
+    (lastJudicial?.status as ProviderVerificationStatus) || 'approved';
+  const judicialRiskFallback: RiskLevel = lastJudicial
+    ? ((lastJudicial.riskLevel as RiskLevel) || 'unknown')
+    : 'low';
+
+  const cadastralRisk: RiskLevel = cadastral.status === 'rejected' ? 'high' : 'low';
+  const riskLevel = mergeRisk(cadastralRisk, judicialRiskFallback);
+  const verificationStatus = decideVerificationStatus(
+    cadastral.status,
+    judicialStatusFallback,
+    judicialRiskFallback
+  );
 
   await prisma.$transaction([
     prisma.dueDiligenceReport.create({
@@ -63,6 +78,52 @@ export async function runDueDiligenceForCompany(companyId: string): Promise<DueD
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
     }),
+    prisma.company.update({
+      where: { id: companyId },
+      data: {
+        verificationStatus,
+        verifiedAt: new Date(),
+        verificationPayload: (cadastral.raw as any) ?? undefined,
+        riskLevel,
+        lastDueDiligenceAt: new Date(),
+      },
+    }),
+  ]);
+
+  return {
+    cadastralStatus: cadastral.status,
+    judicialStatus: judicialStatusFallback,
+    verificationStatus,
+    riskLevel,
+  };
+}
+
+export async function runEscavadorForCompany(companyId: string) {
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { id: true, cnpj: true },
+  });
+  if (!company) throw new Error('Empresa não encontrada para consulta Escavador.');
+
+  const judicial = await fetchJudicialRiskByCnpj(company.cnpj);
+
+  const lastCadastral = await prisma.dueDiligenceReport.findFirst({
+    where: { companyId, kind: 'cadastral' },
+    orderBy: { createdAt: 'desc' },
+    select: { status: true },
+  });
+  const cadastralStatus =
+    (lastCadastral?.status as ProviderVerificationStatus) || 'pending';
+
+  const cadastralRisk: RiskLevel = cadastralStatus === 'rejected' ? 'high' : 'low';
+  const riskLevel = mergeRisk(cadastralRisk, judicial.riskLevel);
+  const verificationStatus = decideVerificationStatus(
+    cadastralStatus,
+    judicial.status,
+    judicial.riskLevel
+  );
+
+  await prisma.$transaction([
     prisma.dueDiligenceReport.create({
       data: {
         companyId,
@@ -86,7 +147,6 @@ export async function runDueDiligenceForCompany(companyId: string): Promise<DueD
       data: {
         verificationStatus,
         verifiedAt: new Date(),
-        verificationPayload: (cadastral.raw as any) ?? undefined,
         riskLevel,
         lastDueDiligenceAt: new Date(),
         judicialFlags: {
@@ -99,12 +159,7 @@ export async function runDueDiligenceForCompany(companyId: string): Promise<DueD
     }),
   ]);
 
-  return {
-    cadastralStatus: cadastral.status,
-    judicialStatus: judicial.status,
-    verificationStatus,
-    riskLevel,
-  };
+  return judicial;
 }
 
 export async function runSerasaForCompany(companyId: string) {

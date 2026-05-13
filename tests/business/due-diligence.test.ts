@@ -7,6 +7,7 @@ const prismaMock = {
   },
   dueDiligenceReport: {
     create: jest.fn(),
+    findFirst: jest.fn(),
   },
   $transaction: jest.fn(async (ops: any[]) => Promise.all(ops)),
 };
@@ -25,20 +26,11 @@ jest.mock('@/lib/providers/cnpjws', () => ({
 }));
 
 jest.mock('@/lib/providers/escavador', () => ({
-  fetchJudicialRiskByCnpj: jest.fn(async () => ({
-    provider: 'escavador',
-    status: 'approved',
-    reason: 'ok',
-    totalCases: 0,
-    laborCases: 0,
-    civilCases: 0,
-    highValueCases: 0,
-    riskLevel: 'low',
-    raw: { source: 'escavador' },
-  })),
+  fetchJudicialRiskByCnpj: jest.fn(),
 }));
 
 const { runDueDiligenceForCompany } = require('@/lib/dueDiligence');
+const escavador = require('@/lib/providers/escavador');
 
 describe('due diligence orchestrator', () => {
   beforeEach(() => {
@@ -49,11 +41,13 @@ describe('due diligence orchestrator', () => {
     });
     prismaMock.company.update.mockResolvedValue({});
     prismaMock.dueDiligenceReport.create.mockResolvedValue({});
+    prismaMock.dueDiligenceReport.findFirst.mockResolvedValue(null);
   });
 
-  it('executa due diligence e retorna approved', async () => {
+  it('executa due diligence (só cadastral) sem chamar Escavador', async () => {
     const result = await runDueDiligenceForCompany('company-1');
     expect(result.verificationStatus).toBe('approved');
     expect(prismaMock.$transaction).toHaveBeenCalled();
+    expect(escavador.fetchJudicialRiskByCnpj).not.toHaveBeenCalled();
   });
 });

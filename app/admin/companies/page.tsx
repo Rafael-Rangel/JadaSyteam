@@ -10,6 +10,7 @@ import {
   Edit,
   ShieldCheck,
   Activity,
+  Scale,
 } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import Tabs from '@/components/ui/Tabs';
@@ -279,6 +280,7 @@ export default function CompaniesPage() {
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const [dueDiligenceUpdatingId, setDueDiligenceUpdatingId] = useState<string | null>(null);
   const [serasaUpdatingId, setSerasaUpdatingId] = useState<string | null>(null);
+  const [escavadorUpdatingId, setEscavadorUpdatingId] = useState<string | null>(null);
   const [verificationModal, setVerificationModal] = useState<{
     company: Company;
     payload: Record<string, unknown> | null;
@@ -417,6 +419,22 @@ export default function CompaniesPage() {
       .finally(() => setSerasaUpdatingId(null));
   };
 
+  const handleRunEscavador = (companyId: string) => {
+    setEscavadorUpdatingId(companyId);
+    fetch(`/api/admin/companies/${companyId}/escavador`, { method: 'POST' })
+      .then((res) => (res.ok ? res.json() : res.json().then((e) => Promise.reject(e))))
+      .then((data) => {
+        loadCompanies();
+        window.alert(
+          `Consulta Escavador concluída. Processos: ${data?.totalCases ?? '—'} · Risco: ${
+            data?.riskLevel ?? 'unknown'
+          } · Status: ${data?.status ?? '—'}`
+        );
+      })
+      .catch((e) => window.alert(e?.error || 'Falha ao consultar Escavador.'))
+      .finally(() => setEscavadorUpdatingId(null));
+  };
+
   const handleOpenEdit = (company: Company) => {
     setEditingCompany(company);
     setNewPlan(company.plan);
@@ -543,6 +561,13 @@ export default function CompaniesPage() {
             icon: <Activity className="w-4 h-4" />,
             onClick: () => handleRunSerasa(row.id),
             disabled: serasaUpdatingId === row.id,
+          },
+          {
+            id: 'escavador',
+            label: escavadorUpdatingId === row.id ? 'Consultando...' : 'Consultar Escavador',
+            icon: <Scale className="w-4 h-4" />,
+            onClick: () => handleRunEscavador(row.id),
+            disabled: escavadorUpdatingId === row.id,
           },
           ...(row.approvalStatus !== 'approved'
             ? [
