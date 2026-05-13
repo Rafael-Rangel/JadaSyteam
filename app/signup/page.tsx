@@ -53,6 +53,7 @@ function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingStep2, setCheckingStep2] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState<{ message: string } | null>(null);
 
   useEffect(() => {
@@ -114,11 +115,52 @@ function SignupForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1 && validateStep1()) {
       setStep(2);
-    } else if (step === 2 && validateStep2()) {
+      return;
+    }
+    if (step !== 2) return;
+    if (!validateStep2()) return;
+
+    setCheckingStep2(true);
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.email;
+      delete next.cnpj;
+      return next;
+    });
+    try {
+      const cnpjDigits = (formData.cnpj || '').replace(/\D/g, '');
+      const res = await fetch('/api/auth/check-signup-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          cnpj: cnpjDigits,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrors({ email: data.error || 'Não foi possível verificar os dados. Tente novamente.' });
+        return;
+      }
+      if (!data.ok) {
+        const next: Record<string, string> = {};
+        if (data.emailTaken) {
+          next.email = 'Este e-mail já está em uso. Use outro endereço ou entre com a sua conta.';
+        }
+        if (data.cnpjTaken) {
+          next.cnpj = 'Já existe cadastro com este CNPJ. Volte à etapa Empresa para corrigir ou fale com o suporte.';
+        }
+        setErrors(next);
+        return;
+      }
       setStep(3);
+    } catch {
+      setErrors({ email: 'Não foi possível verificar os dados. Tente novamente.' });
+    } finally {
+      setCheckingStep2(false);
     }
   };
 
@@ -410,11 +452,30 @@ function SignupForm() {
                     required
                   />
 
+                  {errors.cnpj && (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      {errors.cnpj}{' '}
+                      <button
+                        type="button"
+                        className="font-medium text-primary-700 underline"
+                        onClick={() => setStep(1)}
+                      >
+                        Ir para dados da empresa
+                      </button>
+                    </p>
+                  )}
+
                   <div className="flex space-x-4">
-                    <Button type="button" variant="outline" onClick={() => setStep(1)} className="flex-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setStep(1)}
+                      className="flex-1"
+                      disabled={checkingStep2}
+                    >
                       Voltar
                     </Button>
-                    <Button type="button" onClick={handleNext} className="flex-1">
+                    <Button type="button" onClick={() => void handleNext()} className="flex-1" isLoading={checkingStep2}>
                       Continuar
                     </Button>
                   </div>

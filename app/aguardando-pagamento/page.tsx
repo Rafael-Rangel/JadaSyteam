@@ -8,7 +8,24 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2, CheckCircle2, Clock } from 'lucide-react';
+
+function labelBillingStatus(status: string | null): string {
+  switch (status) {
+    case 'pending':
+      return 'Aguardando confirmação do pagamento';
+    case 'active':
+      return 'Pagamento confirmado';
+    case 'trialing':
+      return 'Em período de teste';
+    case 'past_due':
+      return 'Pagamento em atraso';
+    case 'canceled':
+      return 'Assinatura cancelada';
+    default:
+      return status ? `Situação: ${status}` : 'Cobrança em preparação';
+  }
+}
 
 export default function AguardandoPagamentoPage() {
   const { data: session, status } = useSession();
@@ -56,56 +73,99 @@ export default function AguardandoPagamentoPage() {
       <main className="flex-grow py-12 bg-neutral-50">
         <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
           <Card>
-            <div className="text-center space-y-4">
-              <h1 className="text-2xl font-bold text-neutral-900">Aguardando confirmação do pagamento</h1>
+            <div className="text-center space-y-5">
               {approvalStatus !== 'approved' ? (
-                <p className="text-neutral-600">
-                  Seu cadastro foi recebido e está em análise pela equipe. Assim que sua empresa for aprovada, a cobrança será gerada e o botão de pagamento aparecerá aqui.
-                </p>
-              ) : billingStatus === 'active' ? (
-                <p className="text-neutral-600">
-                  Pagamento confirmado com sucesso. Seu acesso completo está sendo liberado. Clique em atualizar status para continuar.
-                </p>
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 ring-1 ring-neutral-200/80">
+                  <Clock className="h-7 w-7 text-neutral-500" aria-hidden />
+                </div>
               ) : (
-                <p className="text-neutral-600">
-                  Sua empresa foi aprovada. Agora finalize o pagamento para liberar o acesso completo à plataforma.
-                </p>
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 ring-1 ring-emerald-100">
+                  <CheckCircle2 className="h-7 w-7 text-emerald-600" aria-hidden />
+                </div>
               )}
+
+              <div className="space-y-1">
+                <h1 className="text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">
+                  {approvalStatus !== 'approved'
+                    ? 'Cadastro em análise'
+                    : billingStatus === 'active'
+                      ? 'Tudo certo por aqui'
+                      : 'Próximo passo: pagamento'}
+                </h1>
+                <p className="text-sm text-neutral-600 sm:text-base">
+                  {approvalStatus !== 'approved' ? (
+                    <>Recebemos seus dados. Quando a empresa for aprovada, geramos a cobrança e liberamos o link de pagamento aqui.</>
+                  ) : billingStatus === 'active' ? (
+                    <>O pagamento foi reconhecido. Atualize o status abaixo se o painel ainda não liberou o acesso completo.</>
+                  ) : (
+                    <>Sua empresa já está aprovada. Conclua o pagamento da assinatura para usar todos os recursos da plataforma.</>
+                  )}
+                </p>
+              </div>
+
+              {approvalStatus === 'approved' && billingStatus !== 'active' && (
+                <ul className="mx-auto max-w-md space-y-2.5 rounded-xl border border-emerald-100 bg-emerald-50/60 px-4 py-3 text-left text-sm text-neutral-700">
+                  <li className="flex gap-2.5">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                    <span className="leading-snug">Empresa aprovada — cadastro liberado para cobrança.</span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                    <span className="leading-snug">
+                      {paymentLink
+                        ? 'Use o botão abaixo para abrir o checkout seguro e finalizar.'
+                        : 'Assim que o link estiver disponível, ele aparecerá aqui.'}
+                    </span>
+                  </li>
+                </ul>
+              )}
+
               {approvalStatus === 'approved' && billingStatus !== 'active' && paymentLink ? (
                 <a
                   href={paymentLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-primary-700"
                 >
-                  Abrir página de pagamento <ExternalLink className="w-4 h-4" />
+                  Ir ao pagamento <ExternalLink className="h-4 w-4 opacity-90" />
                 </a>
               ) : approvalStatus === 'approved' && billingStatus !== 'active' ? (
-                <p className="text-sm text-amber-600">
-                  Link de pagamento não disponível no momento. Entre em contato com o suporte ou tente novamente mais tarde.
+                <p className="text-sm text-amber-700">
+                  O link de pagamento ainda não está disponível. Tente atualizar em alguns minutos ou fale com o suporte.
                 </p>
               ) : approvalStatus === 'approved' && billingStatus === 'active' ? (
-                <p className="text-sm text-emerald-600">
-                  Pagamento identificado. Se ainda estiver bloqueado, atualize esta página.
+                <p className="text-sm font-medium text-emerald-700">
+                  Pagamento identificado. Se algo não atualizar, use &quot;Atualizar status&quot;.
                 </p>
               ) : (
-                <p className="text-sm text-neutral-500">
-                  Status atual: em análise administrativa.
-                </p>
+                <p className="text-sm text-neutral-500">Etapa atual: análise da equipe.</p>
               )}
+
               {approvalStatus === 'approved' && (
-                <p className="text-sm text-neutral-500">
-                  Método escolhido: {preferredBillingType === 'CREDIT_CARD' ? 'Cartão de crédito' : preferredBillingType === 'PIX' ? 'PIX' : preferredBillingType === 'BOLETO' ? 'Boleto' : 'Não informado'}
-                  {billingStatus ? ` · Cobrança: ${billingStatus}` : ''}
+                <p className="text-xs text-neutral-500 sm:text-sm">
+                  <span className="text-neutral-600">Forma preferida:</span>{' '}
+                  {preferredBillingType === 'CREDIT_CARD'
+                    ? 'Cartão de crédito'
+                    : preferredBillingType === 'PIX'
+                      ? 'PIX'
+                      : preferredBillingType === 'BOLETO'
+                        ? 'Boleto'
+                        : 'Não informada'}
+                  <span className="text-neutral-400"> · </span>
+                  <span className="text-neutral-600">{labelBillingStatus(billingStatus)}</span>
                 </p>
               )}
-              <div className="pt-4 flex justify-center">
+
+              <div className="flex justify-center pt-1">
                 <Button variant="outline" onClick={() => router.refresh()}>
                   Atualizar status
                 </Button>
               </div>
               <p className="text-sm text-neutral-500">
-                <Link href="/login" className="text-primary-600 hover:underline">Sair e fazer login</Link> em outro momento.
+                <Link href="/login" className="text-primary-600 hover:underline">
+                  Encerrar sessão
+                </Link>{' '}
+                e voltar depois, se preferir.
               </p>
             </div>
           </Card>
