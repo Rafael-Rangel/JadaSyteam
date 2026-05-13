@@ -338,11 +338,6 @@ export default function CreateRequestPage() {
               </p>
               <p className="text-xs text-neutral-500">PDF, JPG, PNG ou WEBP — até 10MB por arquivo</p>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={openFilePicker}>
-                Escolher arquivos
-              </Button>
-            </div>
             {errors.attachments && (
               <p className="mt-2 text-sm text-danger-600">{errors.attachments}</p>
             )}
