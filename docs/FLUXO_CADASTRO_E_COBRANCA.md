@@ -98,7 +98,7 @@ Assim você sabe no seu sistema se a empresa está com assinatura ativa, em atra
 |--------------------------|---------------------|----------|
 | Cadastro (empresa + dono)| Cria `Company` e `User`; `Company.plan` = plano escolhido | Nada |
 | Escolha do plano         | Já feita no signup → `Company.plan` | Nada |
-| Primeira “Gerar cobrança”| Cria/atualiza `Company.billingCustomerId`; cria/atualiza `billingSubscriptionId`, `billingStatus`, etc. | Cria **Customer** (se ainda não existir); cria **Subscription**; Asaas gera a **Payment** (cobrança) |
+| Primeira cobrança        | Após **aprovação admin**: `PATCH /api/admin/companies/:id` chama Asaas (Customer + Subscription + Payment) | Cria **Customer** (se ainda não existir); cria **Subscription**; Asaas gera **Payment** |
 | Cobrança (valor, link)   | Só referências (IDs, status) | **Payment** (cobrança) fica no Asaas |
 | Pagamento confirmado    | Atualiza `Company.billingStatus` (via webhook); grava `BillingEvent` | Asaas envia webhook |
 
@@ -117,3 +117,16 @@ Assim você sabe no seu sistema se a empresa está com assinatura ativa, em atra
 
 - **“Como acontece?”**  
   Cadastro → tudo no seu banco (Company + User + plan + preferência de pagamento/período) e status pendente. Depois, quando o admin aprova → backend cria (se necessário) Customer e Subscription no Asaas e disponibiliza link de pagamento na plataforma. O usuário paga no Asaas. O webhook atualiza `billingStatus` para liberar o acesso.
+
+---
+
+## 5. Renovação, tolerância de 7 dias e painel
+
+- **`lib/billingAccess.ts`**: calcula `shellState` (`full` | `grace` | `awaiting` | `blocked`), `renewalEligible`, `allowBusinessActions` e aviso de banner. **Tolerância**: até **7 dias corridos** após o vencimento (`billingNextDueDate` com status `past_due` ou `pending` em atraso) o usuário ainda acessa o **painel** (comprador/vendedor) para ir em **Assinatura**; depois disso, `blocked` → redireciona para `/aguardando-pagamento`. Durante a tolerância, **`requireActiveBilling`** continua negando criação de requisições/propostas até o pagamento voltar a `active`.
+- **`POST /api/billing/asaas/subscribe`**: retorna **403** — o usuário não dispara nova assinatura; a primeira cobrança vem da **aprovação admin**; renovações seguem o ciclo no Asaas.
+- **`POST /api/company/subscription/renew`**: na **janela de renovação** (`renewalEligible`: próximo vencimento em até 7 dias com assinatura ativa, **ou** tolerância de pagamento), o usuário confirma `planSlug`, `period` e `billingType`; o backend atualiza assinatura no Asaas e a empresa no Prisma.
+- **`POST /api/company/plan`** e **`PATCH /api/company/payment-method`**: só aceitos quando `renewalEligible` (mesma regra).
+- **`GET /api/company/subscription`**: inclui objeto `access` com `renewalEligible`, `shellState`, etc.
+- **`GET /api/company/subscription/payments`**: lista pagamentos da assinatura no Asaas (com rótulos PT-BR).
+- **`GET /api/company/billing-notice`**: JSON resumido para o cliente (opcional; o layout já injeta o banner).
+

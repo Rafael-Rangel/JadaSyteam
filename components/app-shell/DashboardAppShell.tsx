@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useState } from 'react';
+import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { LogOut, Menu } from 'lucide-react';
 import Sidebar, { SidebarItem } from '@/components/ui/Sidebar';
@@ -12,6 +13,8 @@ export type DashboardAppShellProps = {
   subtitle: string;
   topbarLabel: string;
   brandHref: string;
+  billingNotice?: { level: 'info' | 'warning' | 'danger'; message: string } | null;
+  subscriptionHref?: string;
 };
 
 export default function DashboardAppShell({
@@ -20,6 +23,8 @@ export default function DashboardAppShell({
   subtitle,
   topbarLabel,
   brandHref,
+  billingNotice,
+  subscriptionHref,
 }: DashboardAppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: session } = useSession();
@@ -77,6 +82,30 @@ export default function DashboardAppShell({
               </div>
             </div>
           </header>
+
+          {billingNotice && (
+            <div
+              className={`px-4 sm:px-6 lg:px-8 py-2.5 text-sm border-b ${
+                billingNotice.level === 'danger'
+                  ? 'bg-danger-50 text-danger-900 border-danger-100'
+                  : billingNotice.level === 'warning'
+                    ? 'bg-amber-50 text-amber-950 border-amber-100'
+                    : 'bg-primary-50 text-primary-950 border-primary-100'
+              }`}
+            >
+              <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+                <p>{billingNotice.message}</p>
+                {subscriptionHref && (
+                  <Link
+                    href={subscriptionHref}
+                    className="font-medium underline underline-offset-2 shrink-0"
+                  >
+                    Ir para Assinatura
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
 
           <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
             <div className="max-w-7xl mx-auto w-full">{children}</div>

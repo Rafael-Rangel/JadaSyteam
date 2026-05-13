@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import BuyerAppShell from '@/components/app-shell/BuyerAppShell';
+import { resolveBillingAccess } from '@/lib/billingAccess';
 
 export default async function BuyerLayout({
   children,
@@ -16,16 +17,26 @@ export default async function BuyerLayout({
 
   const company = await prisma.company.findUnique({
     where: { id: session.user.companyId },
-    select: { approvalStatus: true, billingStatus: true, billingManuallyApproved: true },
+    select: {
+      approvalStatus: true,
+      billingStatus: true,
+      billingManuallyApproved: true,
+      billingSubscriptionId: true,
+      billingNextDueDate: true,
+    },
   });
 
-  const approvedByOps = company?.approvalStatus === 'approved';
-  const canAccess =
-    (approvedByOps && company?.billingStatus === 'active') || company?.billingManuallyApproved === true;
+  const access = resolveBillingAccess({
+    approvalStatus: company?.approvalStatus,
+    billingStatus: company?.billingStatus,
+    billingManuallyApproved: company?.billingManuallyApproved,
+    billingSubscriptionId: company?.billingSubscriptionId,
+    billingNextDueDate: company?.billingNextDueDate,
+  });
 
-  if (!canAccess) {
+  if (access.shellState === 'awaiting' || access.shellState === 'blocked') {
     redirect('/aguardando-pagamento');
   }
 
-  return <BuyerAppShell>{children}</BuyerAppShell>;
+  return <BuyerAppShell billingNotice={access.billingNotice}>{children}</BuyerAppShell>;
 }

@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { resolveBillingAccess } from '@/lib/billingAccess';
 
 export type ActiveBillingContext = {
   companyId: string;
@@ -26,21 +27,30 @@ export async function requireActiveBilling(): Promise<
       approvalStatus: true,
       billingStatus: true,
       billingManuallyApproved: true,
+      billingSubscriptionId: true,
+      billingNextDueDate: true,
     },
   });
   if (!company) {
     return { ok: false, status: 404, error: 'Empresa não encontrada' };
   }
 
-  const hasActiveAccess =
-    company.billingManuallyApproved === true ||
-    (company.approvalStatus === 'approved' && company.billingStatus === 'active');
+  const access = resolveBillingAccess({
+    approvalStatus: company.approvalStatus,
+    billingStatus: company.billingStatus,
+    billingManuallyApproved: company.billingManuallyApproved,
+    billingSubscriptionId: company.billingSubscriptionId,
+    billingNextDueDate: company.billingNextDueDate,
+  });
 
-  if (!hasActiveAccess) {
+  if (!access.allowBusinessActions) {
     return {
       ok: false,
       status: 403,
-      error: 'Acesso bloqueado. Aguardando aprovação ou pagamento.',
+      error:
+        access.shellState === 'grace'
+          ? 'Acesso às funções bloqueado durante a tolerância de pagamento. Regularize em Assinatura.'
+          : 'Acesso bloqueado. Aguardando aprovação ou pagamento.',
     };
   }
 

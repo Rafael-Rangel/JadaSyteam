@@ -13,6 +13,11 @@ import {
 import DashboardAppShell from '@/components/app-shell/DashboardAppShell';
 import type { SidebarItem } from '@/components/ui/Sidebar';
 
+type SellerAppShellProps = {
+  children: ReactNode;
+  billingNotice?: { level: 'info' | 'warning' | 'danger'; message: string } | null;
+};
+
 const sellerItems: SidebarItem[] = [
   { href: '/seller/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-[18px] h-[18px]" /> },
   { href: '/seller/opportunities', label: 'Oportunidades', icon: <Sparkles className="w-[18px] h-[18px]" /> },
@@ -23,13 +28,15 @@ const sellerItems: SidebarItem[] = [
   { href: '/seller/profile', label: 'Perfil', icon: <User className="w-[18px] h-[18px]" /> },
 ];
 
-export default function SellerAppShell({ children }: { children: ReactNode }) {
+export default function SellerAppShell({ children, billingNotice }: SellerAppShellProps) {
   return (
     <DashboardAppShell
       items={sellerItems}
       subtitle="Vendedor"
       topbarLabel="Área do vendedor"
       brandHref="/seller/dashboard"
+      billingNotice={billingNotice}
+      subscriptionHref="/seller/subscription"
     >
       {children}
     </DashboardAppShell>

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { asaasUpdateSubscription, AsaasBillingType } from '@/lib/asaas';
+import { resolveBillingAccess, isRenewalWindowOpen } from '@/lib/billingAccess';
 
 function normalizeBillingType(value: unknown): AsaasBillingType | null {
   const raw = typeof value === 'string' ? value.toUpperCase() : '';
@@ -31,10 +32,35 @@ export async function PATCH(request: Request) {
 
   const company = await prisma.company.findUnique({
     where: { id: session.user.companyId },
-    select: { id: true, billingSubscriptionId: true },
+    select: {
+      id: true,
+      billingSubscriptionId: true,
+      approvalStatus: true,
+      billingStatus: true,
+      billingManuallyApproved: true,
+      billingNextDueDate: true,
+    },
   });
   if (!company) {
     return NextResponse.json({ error: 'Empresa não encontrada.' }, { status: 404 });
+  }
+
+  const access = resolveBillingAccess({
+    approvalStatus: company.approvalStatus,
+    billingStatus: company.billingStatus,
+    billingManuallyApproved: company.billingManuallyApproved,
+    billingSubscriptionId: company.billingSubscriptionId,
+    billingNextDueDate: company.billingNextDueDate,
+  });
+
+  if (!isRenewalWindowOpen(access)) {
+    return NextResponse.json(
+      {
+        error:
+          'Alteração da forma de pagamento só é permitida na janela de renovação ou tolerância. Acesse Assinatura quando estiver disponível.',
+      },
+      { status: 403 }
+    );
   }
 
   if (company.billingSubscriptionId) {

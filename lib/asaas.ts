@@ -150,11 +150,18 @@ export type AsaasPayment = {
   billingType: AsaasBillingType;
   value: number;
   netValue?: number;
+  feeValue?: number;
   dueDate: string;
   invoiceUrl?: string;
   bankSlipUrl?: string;
   pixTransaction?: string;
   externalReference?: string;
+  description?: string;
+  invoiceNumber?: string | null;
+  paymentDate?: string | null;
+  clientPaymentDate?: string | null;
+  creditDate?: string | null;
+  estimatedCreditDate?: string | null;
 };
 
 export async function asaasListSubscriptionPayments(subscriptionId: string): Promise<{ data: AsaasPayment[] }> {

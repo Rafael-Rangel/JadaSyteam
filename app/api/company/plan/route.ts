@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getPlanBySlugOrFallback, planSlugExistsAndActive } from '@/lib/planService';
 import { asaasUpdateSubscription } from '@/lib/asaas';
 import { cycleFromPeriod } from '@/lib/asaasBilling';
+import { resolveBillingAccess, isRenewalWindowOpen } from '@/lib/billingAccess';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -25,20 +26,52 @@ export async function POST(request: Request) {
 
   const company = await prisma.company.findUnique({
     where: { id: session.user.companyId },
-    include: { users: true },
+    select: {
+      id: true,
+      plan: true,
+      billingSubscriptionId: true,
+      preferredBillingPeriod: true,
+      approvalStatus: true,
+      billingStatus: true,
+      billingManuallyApproved: true,
+      billingNextDueDate: true,
+    },
   });
   if (!company) {
     return NextResponse.json({ error: 'Empresa não encontrada.' }, { status: 404 });
   }
+
+  const userCount = await prisma.user.count({
+    where: { companyId: company.id, deletedAt: null },
+  });
+
+  const access = resolveBillingAccess({
+    approvalStatus: company.approvalStatus,
+    billingStatus: company.billingStatus,
+    billingManuallyApproved: company.billingManuallyApproved,
+    billingSubscriptionId: company.billingSubscriptionId,
+    billingNextDueDate: company.billingNextDueDate,
+  });
+
+  if (!isRenewalWindowOpen(access)) {
+    return NextResponse.json(
+      {
+        error:
+          'Troca de plano só é permitida na janela de renovação (perto do vencimento) ou durante a tolerância de pagamento. Use a página Assinatura.',
+      },
+      { status: 403 }
+    );
+  }
+
   if (company.plan === planSlug) {
     return NextResponse.json({ error: 'Sua empresa já está nesse plano.' }, { status: 400 });
   }
 
   const targetPlan = await getPlanBySlugOrFallback(planSlug);
-  if (company.users.length > targetPlan.usersLimit) {
+  if (userCount > targetPlan.usersLimit) {
     return NextResponse.json(
       {
-        error: `Downgrade não permitido: empresa tem ${company.users.length} usuário(s), mas o plano suporta ${targetPlan.usersLimit}.`,
+        error: `Downgrade não permitido: empresa tem ${userCount} usuário(s), mas o plano suporta ${targetPlan.usersLimit}.`,
       },
       { status: 400 }
     );

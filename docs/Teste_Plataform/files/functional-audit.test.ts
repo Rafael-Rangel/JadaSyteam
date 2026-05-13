@@ -679,25 +679,17 @@ describe("ÁREA 7 — Proposals (Seller)", () => {
 describe("ÁREA 8 — Billing / Assinatura", () => {
 
   // H01/H02 — Assinatura duplicada ──────────────────────────────────────────
-  it("[H02] 🔴 POST /api/billing/asaas/subscribe é idempotente (não cria duplicata)", async () => {
+  it("[H02] POST /api/billing/asaas/subscribe bloqueado (cobrança pela plataforma)", async () => {
     if (!T.buyer) return;
 
-    const body = { planSlug: "starter" };
+    const body = { planSlug: 'starter', period: 'monthly', billingType: 'PIX' };
     const [r1, r2] = await Promise.all([
-      post("/api/billing/asaas/subscribe", body, T.buyer),
-      post("/api/billing/asaas/subscribe", body, T.buyer),
+      post('/api/billing/asaas/subscribe', body, T.buyer),
+      post('/api/billing/asaas/subscribe', body, T.buyer),
     ]);
 
-    // Pelo menos uma das chamadas deve falhar (409 conflict) se já tem assinatura
-    const statuses = [r1.status, r2.status];
-    console.log("[H02] Status das duas chamadas simultâneas:", statuses);
-
-    if (statuses.every((s) => [200, 201].includes(s))) {
-      console.error("[H02] 🚨 FALHA: duas assinaturas criadas simultaneamente — cliente cobrado duas vezes!");
-    } else {
-      console.log("[H02] ✅ Pelo menos uma chamada foi rejeitada");
-    }
-    expect(statuses.some((s) => s === 500)).toBe(false);
+    expect(r1.status).toBe(403);
+    expect(r2.status).toBe(403);
   });
 
   // H04 — Cancelamento pelo usuário ─────────────────────────────────────────
