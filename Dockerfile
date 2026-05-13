@@ -34,6 +34,9 @@ COPY --from=builder --chown=nextjs:nextjs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nextjs /app/package*.json ./
 COPY --from=builder --chown=nextjs:nextjs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nextjs /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder --chown=nextjs:nextjs /app/scripts ./scripts
+COPY --from=builder --chown=nextjs:nextjs /app/lib ./lib
+COPY --from=builder --chown=nextjs:nextjs /app/tsconfig.json ./tsconfig.json
 
 USER nextjs
 EXPOSE 3000
