@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import Card from '@/components/Card';
-import { DollarSign } from 'lucide-react';
+import { ArrowRight, DollarSign, TrendingUp, Users } from 'lucide-react';
+import PageHeader from '@/components/ui/PageHeader';
+import KPIStat from '@/components/ui/KPIStat';
+import DataTable, { DataTableColumn } from '@/components/ui/DataTable';
+import Badge from '@/components/ui/Badge';
+import BarChartCard from '@/components/charts/BarChartCard';
+import { chartColors } from '@/components/charts/ChartTheme';
 
 type PlanRow = {
   id: string;
@@ -29,6 +32,30 @@ type FinancialData = {
   subscriptions: SubRow[];
 };
 
+const typeLabel: Record<string, string> = {
+  buyer: 'Comprador',
+  seller: 'Vendedor',
+  both: 'Ambos',
+};
+
+const typeBadgeTone: Record<string, 'info' | 'accent' | 'warning' | 'neutral'> = {
+  buyer: 'info',
+  seller: 'accent',
+  both: 'warning',
+};
+
+function formatCurrency(v: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 0,
+  }).format(v);
+}
+
+function formatNumber(v: number) {
+  return new Intl.NumberFormat('pt-BR').format(v);
+}
+
 export default function AdminFinancialPage() {
   const [data, setData] = useState<FinancialData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,106 +68,161 @@ export default function AdminFinancialPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const typeLabel: Record<string, string> = {
-    buyer: 'Comprador',
-    seller: 'Vendedor',
-    both: 'Ambos',
-  };
+  const totalCompanies = useMemo(
+    () => data?.byPlan.reduce((s, p) => s + p.companiesCount, 0) ?? 0,
+    [data]
+  );
+
+  const avgTicket = useMemo(() => {
+    if (!data) return 0;
+    return totalCompanies > 0 ? Math.round(data.totalRevenue / totalCompanies) : 0;
+  }, [data, totalCompanies]);
+
+  const chartData = useMemo(() => {
+    if (!data) return [];
+    return data.byPlan
+      .filter((p) => p.companiesCount > 0)
+      .map((p) => ({ plan: p.name, receita: p.revenue }));
+  }, [data]);
+
+  const subColumns: DataTableColumn<SubRow>[] = [
+    {
+      key: 'name',
+      header: 'Empresa',
+      render: (row) => <span className="font-medium text-neutral-900">{row.name}</span>,
+    },
+    {
+      key: 'type',
+      header: 'Tipo',
+      render: (row) => (
+        <Badge tone={typeBadgeTone[row.type] ?? 'neutral'}>
+          {typeLabel[row.type] ?? row.type}
+        </Badge>
+      ),
+    },
+    {
+      key: 'plan',
+      header: 'Plano',
+      render: (row) => <span className="text-sm text-neutral-700">{row.plan}</span>,
+    },
+    {
+      key: 'createdAt',
+      header: 'Cadastro',
+      align: 'right',
+      render: (row) => (
+        <span className="text-xs text-neutral-500 tabular-nums">
+          {new Date(row.createdAt).toLocaleDateString('pt-BR')}
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header userType="admin" userName="Admin" />
+    <>
+      <PageHeader
+        title="Financeiro"
+        description="Receita estimada por plano. A integração com gateway de pagamento real virá em breve."
+      />
 
-      <main className="flex-grow py-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Financeiro</h1>
-            <p className="text-gray-600 mt-1">
-              Receita estimada por plano (assinaturas). Integração com gateway de pagamento em breve.
-            </p>
-          </div>
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <KPIStat
+          label="Receita · mês"
+          value={data ? formatCurrency(data.totalRevenue) : '—'}
+          hint="Soma das assinaturas ativas"
+          icon={<DollarSign className="w-5 h-5" />}
+          loading={loading}
+        />
+        <KPIStat
+          label="Empresas pagantes"
+          value={data ? formatNumber(totalCompanies) : '—'}
+          icon={<Users className="w-5 h-5" />}
+          loading={loading}
+        />
+        <KPIStat
+          label="Ticket médio"
+          value={data ? formatCurrency(avgTicket) : '—'}
+          icon={<TrendingUp className="w-5 h-5" />}
+          loading={loading}
+        />
+      </section>
 
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
+          <BarChartCard
+            title="Receita por plano"
+            description="Receita mensal estimada distribuída entre os planos ativos."
+            loading={loading}
+            data={chartData}
+            xKey="plan"
+            series={[{ key: 'receita', label: 'Receita', color: chartColors.primary }]}
+            formatValue={(v) => formatCurrency(v)}
+            height={300}
+          />
+        </div>
+
+        <div className="card card-padding-md">
+          <h2 className="text-sm font-semibold text-neutral-900 mb-4">Por plano</h2>
           {loading ? (
-            <p className="text-gray-600">Carregando...</p>
-          ) : !data ? (
-            <p className="text-gray-500">Erro ao carregar dados.</p>
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-14 skeleton rounded-md" />
+              ))}
+            </div>
+          ) : !data || data.byPlan.length === 0 ? (
+            <p className="text-sm text-neutral-500">Nenhum plano cadastrado.</p>
           ) : (
-            <>
-              <Card className="mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-success-100 text-success-600 flex items-center justify-center">
-                    <DollarSign className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Receita mensal estimada</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      R$ {data.totalRevenue.toLocaleString('pt-BR')}
+            <ul className="space-y-2">
+              {data.byPlan.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-md border border-neutral-200 hover:bg-neutral-50/60 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-neutral-900 truncate">
+                      {row.name}
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      {formatCurrency(row.price)}/mês · {row.companiesCount} empresa(s)
                     </p>
                   </div>
-                </div>
-              </Card>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <Card>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Por plano</h2>
-                  <div className="space-y-3">
-                    {data.byPlan.map((row) => (
-                      <div
-                        key={row.id}
-                        className="flex justify-between items-center p-3 border border-gray-200 rounded-lg"
-                      >
-                        <div>
-                          <p className="font-medium text-gray-900">{row.name}</p>
-                          <p className="text-sm text-gray-500">
-                            R$ {row.price.toLocaleString('pt-BR')}/mês • {row.companiesCount} empresa(s)
-                          </p>
-                        </div>
-                        <p className="font-semibold text-gray-900">
-                          R$ {row.revenue.toLocaleString('pt-BR')}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                <Card>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Últimas assinaturas</h2>
-                  {data.subscriptions.length === 0 ? (
-                    <p className="text-gray-500 text-sm">Nenhuma empresa cadastrada.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {data.subscriptions.slice(0, 10).map((s) => (
-                        <div
-                          key={s.id}
-                          className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
-                        >
-                          <div>
-                            <p className="font-medium text-gray-900 text-sm">{s.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {typeLabel[s.type] ?? s.type} • {s.plan}
-                            </p>
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {new Date(s.createdAt).toLocaleDateString('pt-BR')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <Link
-                    href="/admin/companies"
-                    className="inline-block mt-4 text-primary-600 hover:text-primary-700 font-medium text-sm"
-                  >
-                    Ver todas as empresas →
-                  </Link>
-                </Card>
-              </div>
-            </>
+                  <span className="text-sm font-semibold text-neutral-900 tabular-nums">
+                    {formatCurrency(row.revenue)}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
-      </main>
+      </section>
 
-      <Footer />
-    </div>
+      <section>
+        <div className="card card-padding-md mb-0">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-sm font-semibold text-neutral-900">Últimas assinaturas</h2>
+              <p className="mt-0.5 text-xs text-neutral-500">
+                As contas mais recentes na plataforma.
+              </p>
+            </div>
+            <Link
+              href="/admin/companies"
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary-700 hover:text-primary-800"
+            >
+              Ver todas <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <DataTable
+            columns={subColumns}
+            rows={data?.subscriptions.slice(0, 10) ?? []}
+            rowKey={(r) => r.id}
+            loading={loading}
+            density="compact"
+            stickyHeader={false}
+            emptyTitle="Sem assinaturas"
+            emptyDescription="Quando uma empresa assinar, aparecerá aqui."
+          />
+        </div>
+      </section>
+    </>
   );
 }

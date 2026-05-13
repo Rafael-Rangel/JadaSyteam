@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import Card from '@/components/Card';
+import { Check, Plus, Pencil, Sparkles } from 'lucide-react';
+import PageHeader from '@/components/ui/PageHeader';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
-import { Check, Plus, Pencil } from 'lucide-react';
+import Card from '@/components/Card';
+import Badge from '@/components/ui/Badge';
+import EmptyState from '@/components/ui/EmptyState';
+import Skeleton from '@/components/ui/Skeleton';
+import Tabs from '@/components/ui/Tabs';
 
 type Plan = {
   id: string;
@@ -39,6 +42,26 @@ const emptyForm = {
   sortOrder: 0,
 };
 
+type FormTab = 'general' | 'limits' | 'content';
+
+const tabItems: { id: FormTab; label: string }[] = [
+  { id: 'general', label: 'Geral' },
+  { id: 'limits', label: 'Limites' },
+  { id: 'content', label: 'Conteúdo' },
+];
+
+function formatLimit(n: number) {
+  return n >= 99999 ? 'Ilimitado' : new Intl.NumberFormat('pt-BR').format(n);
+}
+
+function formatCurrency(v: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 0,
+  }).format(v);
+}
+
 export default function AdminPlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +69,7 @@ export default function AdminPlansPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [tab, setTab] = useState<FormTab>('general');
 
   const loadPlans = () => {
     setLoading(true);
@@ -63,6 +87,7 @@ export default function AdminPlansPage() {
   const openCreate = () => {
     setForm(emptyForm);
     setError('');
+    setTab('general');
     setModalOpen('create');
   };
 
@@ -81,6 +106,7 @@ export default function AdminPlansPage() {
       sortOrder: plan.sortOrder,
     });
     setError('');
+    setTab('general');
     setModalOpen(plan);
   };
 
@@ -114,12 +140,13 @@ export default function AdminPlansPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-      .then((res) => {
-        const data = res.json().then((d) => ({ status: res.status, data: d }));
-        return data;
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        return { status: res.status, data };
       })
       .then(({ status, data }) => {
-        if (status >= 400) throw new Error((data as { error?: string }).error || 'Erro ao salvar');
+        if (status >= 400)
+          throw new Error((data as { error?: string }).error || 'Erro ao salvar');
         setModalOpen(null);
         loadPlans();
       })
@@ -127,211 +154,275 @@ export default function AdminPlansPage() {
       .finally(() => setSaving(false));
   };
 
-  const formatLimit = (n: number) => (n >= 99999 ? 'Ilimitado' : n.toLocaleString('pt-BR'));
-
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header userType="admin" userName="Admin" />
+    <>
+      <PageHeader
+        title="Planos"
+        description="Crie e edite planos. Para mover uma empresa entre planos, use a tela Empresas."
+        actions={
+          <Button leftIcon={<Plus className="w-4 h-4" />} onClick={openCreate}>
+            Criar plano
+          </Button>
+        }
+      />
 
-      <main className="flex-grow py-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Planos</h1>
-              <p className="text-gray-600 mt-1">
-                Crie e edite planos. Para alterar o plano de uma empresa, use a tela{' '}
-                <Link href="/admin/companies" className="text-primary-600 hover:underline">
-                  Empresas
-                </Link>
-                .
-              </p>
-            </div>
-            <Button onClick={openCreate}>
-              <Plus className="w-4 h-4 mr-2" />
-              Criar plano
-            </Button>
-          </div>
-
-          {loading ? (
-            <p className="text-gray-600">Carregando...</p>
-          ) : plans.length === 0 ? (
-            <p className="text-gray-500">Nenhum plano encontrado.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {plans.map((plan) => (
-                <Card key={plan.id} className="flex flex-col">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
-                      <p className="text-sm text-gray-500">{plan.slug}</p>
-                      <p className="text-2xl font-bold text-primary-600 mt-2">
-                        R$ {plan.price.toLocaleString('pt-BR')}
-                        <span className="text-sm text-gray-600 font-normal">/mês</span>
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`badge ${plan.active ? 'badge-success' : 'badge-secondary'}`}
-                      >
-                        <Check className="w-3 h-3 mr-1" />
-                        {plan.active ? 'Ativo' : 'Inativo'}
-                      </span>
-                      <Button variant="outline" size="sm" onClick={() => openEdit(plan)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-sm text-gray-600 flex-grow">
-                    <div className="flex justify-between">
-                      <span>Usuários:</span>
-                      <span className="font-semibold">{formatLimit(plan.usersLimit)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Requisições/mês:</span>
-                      <span className="font-semibold">
-                        {formatLimit(plan.requestsPerMonthLimit)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Propostas/mês:</span>
-                      <span className="font-semibold">
-                        {formatLimit(plan.proposalsPerMonthLimit)}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} padding="md">
+              <Skeleton height={20} width="60%" />
+              <Skeleton className="mt-3" height={32} width="50%" />
+              <Skeleton className="mt-6" height={14} width="100%" />
+              <Skeleton className="mt-2" height={14} width="90%" />
+              <Skeleton className="mt-2" height={14} width="80%" />
+            </Card>
+          ))}
         </div>
-      </main>
+      ) : plans.length === 0 ? (
+        <Card padding="lg">
+          <EmptyState
+            icon={<Sparkles className="w-5 h-5" />}
+            title="Nenhum plano cadastrado"
+            description="Comece criando o primeiro plano da plataforma."
+            action={
+              <Button leftIcon={<Plus className="w-4 h-4" />} onClick={openCreate}>
+                Criar plano
+              </Button>
+            }
+          />
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {plans.map((plan) => (
+            <Card
+              key={plan.id}
+              tone={plan.popular ? 'elevated' : 'default'}
+              className={`flex flex-col relative ${
+                plan.popular ? 'ring-1 ring-inset ring-primary-200' : ''
+              }`}
+            >
+              {plan.popular && (
+                <span className="absolute -top-2.5 left-4 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary-600 text-white shadow-xs">
+                  <Sparkles className="w-3 h-3" /> Mais popular
+                </span>
+              )}
+              <div className="flex justify-between items-start gap-3 mb-4">
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold text-neutral-900">{plan.name}</h3>
+                  <p className="text-xs text-neutral-500 font-mono">{plan.slug}</p>
+                  <p className="mt-3 text-2xl font-semibold text-neutral-900 tabular-nums">
+                    {formatCurrency(plan.price)}
+                    <span className="text-sm text-neutral-500 font-normal">/mês</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge tone={plan.active ? 'success' : 'neutral'} icon={<Check className="w-3 h-3" />}>
+                    {plan.active ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Editar plano"
+                    onClick={() => openEdit(plan)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {plan.description && (
+                <p className="text-sm text-neutral-600 mb-4 line-clamp-2">{plan.description}</p>
+              )}
+
+              <dl className="mt-auto grid grid-cols-3 gap-2 pt-4 border-t border-neutral-200">
+                <div>
+                  <dt className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+                    Usuários
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-neutral-800 tabular-nums">
+                    {formatLimit(plan.usersLimit)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+                    Req./mês
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-neutral-800 tabular-nums">
+                    {formatLimit(plan.requestsPerMonthLimit)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+                    Prop./mês
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-neutral-800 tabular-nums">
+                    {formatLimit(plan.proposalsPerMonthLimit)}
+                  </dd>
+                </div>
+              </dl>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Modal
         isOpen={modalOpen !== null}
         onClose={() => setModalOpen(null)}
         title={modalOpen === 'create' ? 'Criar plano' : 'Editar plano'}
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</p>
-          )}
-          {modalOpen === 'create' && (
-            <Input
-              label="Slug (único, ex: starter)"
-              value={form.slug}
-              onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              placeholder="ex: starter"
-              required
-            />
-          )}
-          <Input
-            label="Nome"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-          />
-          <Input
-            label="Preço (R$/mês)"
-            type="number"
-            min={0}
-            value={form.price || ''}
-            onChange={(e) => setForm({ ...form, price: Number(e.target.value) || 0 })}
-          />
-          <div className="grid grid-cols-3 gap-2">
-            <Input
-              label="Usuários"
-              type="number"
-              min={0}
-              value={form.usersLimit || ''}
-              onChange={(e) =>
-                setForm({ ...form, usersLimit: Number(e.target.value) || 0 })
-              }
-            />
-            <Input
-              label="Req./mês"
-              type="number"
-              min={0}
-              value={form.requestsPerMonthLimit || ''}
-              onChange={(e) =>
-                setForm({ ...form, requestsPerMonthLimit: Number(e.target.value) || 0 })
-              }
-            />
-            <Input
-              label="Propostas/mês"
-              type="number"
-              min={0}
-              value={form.proposalsPerMonthLimit || ''}
-              onChange={(e) =>
-                setForm({ ...form, proposalsPerMonthLimit: Number(e.target.value) || 0 })
-              }
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-            <textarea
-              className="input w-full min-h-[80px]"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={2}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Features (uma por linha)
-            </label>
-            <textarea
-              className="input w-full min-h-[120px] font-mono text-sm"
-              value={form.features}
-              onChange={(e) => setForm({ ...form, features: e.target.value })}
-              placeholder="3 usuários por empresa&#10;20 requisições/mês"
-              rows={5}
-            />
-          </div>
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.popular}
-                onChange={(e) => setForm({ ...form, popular: e.target.checked })}
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Mais popular</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.active}
-                onChange={(e) => setForm({ ...form, active: e.target.checked })}
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Ativo</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">Ordem:</span>
-              <input
-                type="number"
-                min={0}
-                className="input w-20"
-                value={form.sortOrder}
-                onChange={(e) =>
-                  setForm({ ...form, sortOrder: Number(e.target.value) || 0 })
-                }
-              />
-            </label>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setModalOpen(null)}>
+        description={
+          modalOpen === 'create'
+            ? 'Defina os limites, preços e conteúdo de um novo plano.'
+            : 'Ajuste os detalhes deste plano.'
+        }
+        size="lg"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(null)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Salvando...' : modalOpen === 'create' ? 'Criar' : 'Salvar'}
+            <Button
+              type="submit"
+              form="plan-form"
+              isLoading={saving}
+            >
+              {modalOpen === 'create' ? 'Criar plano' : 'Salvar alterações'}
             </Button>
           </div>
-        </form>
-      </Modal>
+        }
+      >
+        <form id="plan-form" onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <div className="text-sm text-danger-700 bg-danger-50 ring-1 ring-inset ring-danger-200 rounded-md px-3 py-2">
+              {error}
+            </div>
+          )}
 
-      <Footer />
-    </div>
+          <Tabs<FormTab> items={tabItems} value={tab} onChange={setTab} />
+
+          {tab === 'general' && (
+            <div className="space-y-4">
+              {modalOpen === 'create' && (
+                <Input
+                  label="Slug (único)"
+                  helperText="Identificador interno em minúsculas, ex.: starter"
+                  value={form.slug}
+                  onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                  placeholder="starter"
+                  required
+                />
+              )}
+              <Input
+                label="Nome"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+              />
+              <Input
+                label="Preço (R$/mês)"
+                type="number"
+                min={0}
+                value={form.price || ''}
+                onChange={(e) => setForm({ ...form, price: Number(e.target.value) || 0 })}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center gap-2 text-sm text-neutral-700">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    checked={form.popular}
+                    onChange={(e) => setForm({ ...form, popular: e.target.checked })}
+                  />
+                  Marcar como mais popular
+                </label>
+                <label className="flex items-center gap-2 text-sm text-neutral-700">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    checked={form.active}
+                    onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                  />
+                  Plano ativo
+                </label>
+              </div>
+              <Input
+                label="Ordem de exibição"
+                type="number"
+                min={0}
+                value={form.sortOrder}
+                onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) || 0 })}
+                helperText="Quanto menor, mais à esquerda."
+              />
+            </div>
+          )}
+
+          {tab === 'limits' && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Input
+                label="Usuários"
+                type="number"
+                min={0}
+                value={form.usersLimit || ''}
+                onChange={(e) => setForm({ ...form, usersLimit: Number(e.target.value) || 0 })}
+                helperText=">= 99999 = ilimitado"
+              />
+              <Input
+                label="Requisições/mês"
+                type="number"
+                min={0}
+                value={form.requestsPerMonthLimit || ''}
+                onChange={(e) =>
+                  setForm({ ...form, requestsPerMonthLimit: Number(e.target.value) || 0 })
+                }
+              />
+              <Input
+                label="Propostas/mês"
+                type="number"
+                min={0}
+                value={form.proposalsPerMonthLimit || ''}
+                onChange={(e) =>
+                  setForm({ ...form, proposalsPerMonthLimit: Number(e.target.value) || 0 })
+                }
+              />
+            </div>
+          )}
+
+          {tab === 'content' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+                  Descrição
+                </label>
+                <textarea
+                  className="input min-h-[80px] py-2"
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+                  Features (uma por linha)
+                </label>
+                <textarea
+                  className="input min-h-[140px] py-2 font-mono text-xs leading-5"
+                  value={form.features}
+                  onChange={(e) => setForm({ ...form, features: e.target.value })}
+                  placeholder="3 usuários por empresa&#10;20 requisições/mês"
+                  rows={6}
+                />
+              </div>
+            </div>
+          )}
+        </form>
+
+        <p className="mt-4 text-xs text-neutral-500">
+          Para alterar o plano de uma empresa específica, vá em{' '}
+          <Link href="/admin/companies" className="link">
+            Empresas
+          </Link>
+          .
+        </p>
+      </Modal>
+    </>
   );
 }

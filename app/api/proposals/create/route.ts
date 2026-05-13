@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getPlanBySlugOrFallback } from '@/lib/planService';
 import { requireActiveBilling } from '@/lib/requireActiveBilling';
@@ -62,7 +60,7 @@ export async function POST(request: Request) {
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const proposalsThisMonth = await prisma.proposal.count({
       where: {
-        sellerId: session.user.companyId,
+        sellerId: access.context.companyId,
         // guarded by active billing helper
         createdAt: { gte: startOfMonth },
       },

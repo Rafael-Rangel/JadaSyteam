@@ -48,15 +48,15 @@ export default function ForgotPasswordPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-grow py-12 bg-gray-50 flex items-center">
+        <main className="flex-grow py-12 bg-neutral-50 flex items-center">
           <div className="max-w-md w-full mx-auto px-4 sm:px-6 lg:px-8">
             <Card>
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="w-8 h-8 text-success-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">E-mail enviado!</h2>
-                <p className="text-gray-600 mb-6">
+                <h2 className="text-2xl font-bold text-neutral-900 mb-2">E-mail enviado!</h2>
+                <p className="text-neutral-600 mb-6">
                   Se o e-mail <strong>{email}</strong> estiver cadastrado, você receberá um link para redefinir sua senha. Verifique a caixa de entrada e o spam.
                 </p>
                 <Link href="/login">
@@ -75,15 +75,15 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-grow py-12 bg-gray-50 flex items-center">
+      <main className="flex-grow py-12 bg-neutral-50 flex items-center">
         <div className="max-w-md w-full mx-auto px-4 sm:px-6 lg:px-8">
           <Card>
             <div className="text-center mb-6">
               <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Mail className="w-7 h-7 text-primary-600" />
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Esqueceu sua senha?</h1>
-              <p className="text-gray-600">
+              <h1 className="text-3xl font-bold text-neutral-900 mb-2">Esqueceu sua senha?</h1>
+              <p className="text-neutral-600">
                 Informe seu e-mail e enviaremos um link para redefinir sua senha (válido por 1 hora).
               </p>
             </div>

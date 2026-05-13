@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { planSlugExists } from '@/lib/planService';
 import { billingTypeFromInput, createBillingForCompany } from '@/lib/asaasBilling';
+import { enforceSameOrigin, withNoStore } from '@/lib/apiSecurity';
 
 export async function GET(
   _request: Request,
@@ -32,6 +33,11 @@ export async function GET(
       verificationStatus: true,
       verifiedAt: true,
       verificationPayload: true,
+      riskLevel: true,
+      judicialFlags: true,
+      serasaScore: true,
+      serasaCheckedAt: true,
+      lastDueDiligenceAt: true,
     },
   });
 
@@ -39,13 +45,16 @@ export async function GET(
     return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 });
   }
 
-  return NextResponse.json(company);
+  return withNoStore(NextResponse.json(company));
 }
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const sameOriginError = enforceSameOrigin(request);
+  if (sameOriginError) return sameOriginError;
+
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string })?.role;
   if (role !== 'admin') {
@@ -143,5 +152,5 @@ export async function PATCH(
     return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 });
   }
 
-  return NextResponse.json(company);
+  return withNoStore(NextResponse.json(company));
 }

@@ -71,6 +71,11 @@ model Company {
   verificationStatus   String   @default("pending") // pending, approved, rejected
   verifiedAt           DateTime?
   verificationPayload  Json?    // resposta API ou resumo para auditoria
+  riskLevel            String?  @default("unknown") // low, medium, high, unknown
+  lastDueDiligenceAt   DateTime?
+  judicialFlags        Json?
+  serasaScore          Int?
+  serasaCheckedAt      DateTime?
   address              String?
   city                 String?
   state                String?
@@ -83,8 +88,27 @@ model Company {
   requests             Request[]  @relation("BuyerCompany")
   proposals            Proposal[]
   billingEvents        BillingEvent[]
+  dueDiligenceReports  DueDiligenceReport[]
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+}
+
+model DueDiligenceReport {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  provider   String   // cnpjws | escavador | serasa | brasilapi
+  kind       String   // cadastral | judicial | score
+  status     String   // approved | pending | rejected | error
+  summary    Json?
+  payload    Json?
+  score      Int?
+  riskLevel  String?
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([companyId, provider, kind, createdAt])
+  @@index([companyId, createdAt])
 }
 
 model BillingEvent {

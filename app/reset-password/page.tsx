@@ -59,7 +59,7 @@ function ResetPasswordForm() {
     return (
       <Card>
         <div className="text-center py-6">
-          <p className="text-gray-600 mb-4">Link inválido ou expirado. Solicite um novo na página Esqueci minha senha.</p>
+          <p className="text-neutral-600 mb-4">Link inválido ou expirado. Solicite um novo na página Esqueci minha senha.</p>
           <Link href="/forgot-password">
             <Button>Solicitar novo link</Button>
           </Link>
@@ -75,8 +75,8 @@ function ResetPasswordForm() {
           <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-8 h-8 text-success-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Senha alterada!</h2>
-          <p className="text-gray-600 mb-6">Faça login com sua nova senha.</p>
+          <h2 className="text-xl font-bold text-neutral-900 mb-2">Senha alterada!</h2>
+          <p className="text-neutral-600 mb-6">Faça login com sua nova senha.</p>
           <Link href="/login">
             <Button>Ir para o Login</Button>
           </Link>
@@ -91,8 +91,8 @@ function ResetPasswordForm() {
         <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Lock className="w-7 h-7 text-primary-600" />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Nova senha</h1>
-        <p className="text-gray-600">Digite e confirme sua nova senha.</p>
+        <h1 className="text-3xl font-bold text-neutral-900 mb-2">Nova senha</h1>
+        <p className="text-neutral-600">Digite e confirme sua nova senha.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -138,9 +138,9 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-grow py-12 bg-gray-50 flex items-center">
+      <main className="flex-grow py-12 bg-neutral-50 flex items-center">
         <div className="max-w-md w-full mx-auto px-4 sm:px-6 lg:px-8">
-          <Suspense fallback={<Card><p className="py-8 text-center text-gray-600">Carregando...</p></Card>}>
+          <Suspense fallback={<Card><p className="py-8 text-center text-neutral-600">Carregando...</p></Card>}>
             <ResetPasswordForm />
           </Suspense>
         </div>

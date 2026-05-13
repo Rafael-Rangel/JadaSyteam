@@ -167,7 +167,7 @@ function SignupForm() {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-grow py-12 bg-gray-50">
+        <main className="flex-grow py-12 bg-neutral-50">
           <div className="max-w-2xl w-full mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-6">
               <Link href="/">
@@ -179,11 +179,11 @@ function SignupForm() {
                 <div className="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center mx-auto">
                   <Check className="w-8 h-8 text-primary-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">Cadastro concluído</h2>
-                <p className="text-gray-600">
+                <h2 className="text-2xl font-bold text-neutral-900">Cadastro concluído</h2>
+                <p className="text-neutral-600">
                   {signupSuccess.message}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-neutral-500">
                   Após a aprovação da empresa, a cobrança será gerada e ficará disponível na tela de pagamento.
                 </p>
                 <div className="pt-4 border-t">
@@ -193,7 +193,7 @@ function SignupForm() {
                 </div>
               </div>
             </Card>
-            <p className="mt-6 text-center text-sm text-gray-600">
+            <p className="mt-6 text-center text-sm text-neutral-600">
               Já pagou? <Link href="/login" className="text-primary-600 font-medium">Fazer login</Link>
             </p>
           </div>
@@ -207,7 +207,7 @@ function SignupForm() {
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <main className="flex-grow py-12 bg-gray-50">
+      <main className="flex-grow py-12 bg-neutral-50">
         <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-6">
             <Link href="/">
@@ -223,7 +223,7 @@ function SignupForm() {
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
                       step >= s
                         ? 'bg-primary-600 text-white'
-                        : 'bg-gray-200 text-gray-600'
+                        : 'bg-neutral-200 text-neutral-600'
                     }`}
                   >
                     {step > s ? <Check className="w-5 h-5" /> : s}
@@ -231,7 +231,7 @@ function SignupForm() {
                   {s < 3 && (
                     <div
                       className={`w-16 h-1 mx-2 ${
-                        step > s ? 'bg-primary-600' : 'bg-gray-200'
+                        step > s ? 'bg-primary-600' : 'bg-neutral-200'
                       }`}
                     />
                   )}
@@ -239,13 +239,13 @@ function SignupForm() {
               ))}
             </div>
             <div className="flex justify-center mt-4 space-x-16">
-              <span className={`text-sm ${step === 1 ? 'font-semibold text-primary-600' : 'text-gray-600'}`}>
+              <span className={`text-sm ${step === 1 ? 'font-semibold text-primary-600' : 'text-neutral-600'}`}>
                 Empresa
               </span>
-              <span className={`text-sm ${step === 2 ? 'font-semibold text-primary-600' : 'text-gray-600'}`}>
+              <span className={`text-sm ${step === 2 ? 'font-semibold text-primary-600' : 'text-neutral-600'}`}>
                 Responsável
               </span>
-              <span className={`text-sm ${step === 3 ? 'font-semibold text-primary-600' : 'text-gray-600'}`}>
+              <span className={`text-sm ${step === 3 ? 'font-semibold text-primary-600' : 'text-neutral-600'}`}>
                 Plano
               </span>
             </div>
@@ -257,8 +257,8 @@ function SignupForm() {
               {step === 1 && (
                 <div className="space-y-4">
                   <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Informações da Empresa</h2>
-                    <p className="text-gray-600">Preencha os dados da sua empresa</p>
+                    <h2 className="text-2xl font-bold text-neutral-900 mb-2">Informações da Empresa</h2>
+                    <p className="text-neutral-600">Preencha os dados da sua empresa</p>
                   </div>
 
                   <Input
@@ -281,7 +281,7 @@ function SignupForm() {
                   />
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
                       Tipo de Empresa <span className="text-danger-500">*</span>
                     </label>
                     <div className="grid grid-cols-3 gap-4">
@@ -297,7 +297,7 @@ function SignupForm() {
                           className={`p-4 border-2 rounded-lg text-center transition-all ${
                             formData.companyType === type.value
                               ? 'border-primary-600 bg-primary-50 text-primary-700'
-                              : 'border-gray-300 hover:border-gray-400'
+                              : 'border-neutral-300 hover:border-neutral-400'
                           }`}
                         >
                           {type.label}
@@ -319,8 +319,8 @@ function SignupForm() {
               {step === 2 && (
                 <div className="space-y-4">
                   <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Dados do Responsável</h2>
-                    <p className="text-gray-600">Informações do administrador da conta</p>
+                    <h2 className="text-2xl font-bold text-neutral-900 mb-2">Dados do Responsável</h2>
+                    <p className="text-neutral-600">Informações do administrador da conta</p>
                   </div>
 
                   <Input
@@ -366,7 +366,7 @@ function SignupForm() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="text-gray-400 hover:text-gray-600"
+                        className="text-neutral-400 hover:text-neutral-600"
                       >
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -386,7 +386,7 @@ function SignupForm() {
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="text-gray-400 hover:text-gray-600"
+                        className="text-neutral-400 hover:text-neutral-600"
                       >
                         {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -409,15 +409,15 @@ function SignupForm() {
               {step === 3 && (
                 <div className="space-y-4">
                   <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Escolha seu Plano</h2>
-                    <p className="text-gray-600">Selecione o plano que melhor se adapta à sua empresa</p>
+                    <h2 className="text-2xl font-bold text-neutral-900 mb-2">Escolha seu Plano</h2>
+                    <p className="text-neutral-600">Selecione o plano que melhor se adapta à sua empresa</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     {!plansLoaded ? (
-                      <p className="text-gray-500 col-span-full">Carregando planos...</p>
+                      <p className="text-neutral-500 col-span-full">Carregando planos...</p>
                     ) : plans.length === 0 ? (
-                      <p className="text-gray-500 col-span-full">Nenhum plano disponível no momento.</p>
+                      <p className="text-neutral-500 col-span-full">Nenhum plano disponível no momento.</p>
                     ) : (
                       plans.map((plan) => (
                         <button
@@ -427,13 +427,13 @@ function SignupForm() {
                           className={`p-4 border-2 rounded-lg text-left transition-all ${
                             formData.plan === plan.slug
                               ? 'border-primary-600 bg-primary-50'
-                              : 'border-gray-300 hover:border-gray-400'
+                              : 'border-neutral-300 hover:border-neutral-400'
                           }`}
                         >
-                          <div className="font-semibold text-lg text-gray-900 mb-1">{plan.name}</div>
+                          <div className="font-semibold text-lg text-neutral-900 mb-1">{plan.name}</div>
                           <div className="text-2xl font-bold text-primary-600 mb-2">
                             R$ {plan.price}
-                            <span className="text-sm text-gray-600 font-normal">/mês</span>
+                            <span className="text-sm text-neutral-600 font-normal">/mês</span>
                           </div>
                         </button>
                       ))
@@ -442,7 +442,7 @@ function SignupForm() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Forma de pagamento</label>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">Forma de pagamento</label>
                       <select
                         className="input w-full"
                         value={formData.billingType}
@@ -452,12 +452,12 @@ function SignupForm() {
                         <option value="BOLETO">Boleto</option>
                         <option value="CREDIT_CARD">Cartão de crédito</option>
                       </select>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-neutral-500">
                         {formData.billingType === 'CREDIT_CARD' && 'Você será redirecionado à página segura do Asaas para informar o cartão.'}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Período da assinatura</label>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">Período da assinatura</label>
                       <select
                         className="input w-full"
                         value={formData.period}
@@ -476,10 +476,10 @@ function SignupForm() {
                       id="acceptTerms"
                       checked={formData.acceptTerms}
                       onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                      className="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      className="mt-1 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
                       required
                     />
-                    <label htmlFor="acceptTerms" className="text-sm text-gray-600">
+                    <label htmlFor="acceptTerms" className="text-sm text-neutral-600">
                       Eu aceito os{' '}
                       <Link href="/terms" className="text-primary-600 hover:text-primary-700">
                         Termos de Uso
@@ -508,7 +508,7 @@ function SignupForm() {
           </Card>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-neutral-600">
               Já tem uma conta?{' '}
               <Link href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
                 Entrar
@@ -528,8 +528,8 @@ export default function SignupPage() {
     <Suspense fallback={
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-grow py-12 bg-gray-50 flex items-center justify-center">
-          <Card className="max-w-md mx-auto"><p className="text-gray-600">Carregando...</p></Card>
+        <main className="flex-grow py-12 bg-neutral-50 flex items-center justify-center">
+          <Card className="max-w-md mx-auto"><p className="text-neutral-600">Carregando...</p></Card>
         </main>
         <Footer />
       </div>

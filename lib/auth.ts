@@ -7,9 +7,11 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/login',
   },
+  useSecureCookies: process.env.NODE_ENV === 'production',
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 12 * 60 * 60, // 12h
+    updateAge: 60 * 60, // renew every hour
   },
   callbacks: {
     async jwt({ token, user }) {

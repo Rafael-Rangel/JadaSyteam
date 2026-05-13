@@ -76,15 +76,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <main className="flex-grow py-12 bg-gray-50 flex items-center">
+      <main className="flex-grow py-12 bg-neutral-50 flex items-center">
         <div className="max-w-md w-full mx-auto px-4 sm:px-6 lg:px-8">
           <Card>
             <div className="text-center mb-6">
               <Link href="/" className="inline-block mb-4">
                 <Image src="/logo.jpg" alt="JADA" width={120} height={44} className="h-11 w-auto mx-auto" />
               </Link>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Entrar</h1>
-              <p className="text-gray-600">
+              <h1 className="text-3xl font-bold text-neutral-900 mb-2">Entrar</h1>
+              <p className="text-neutral-600">
                 Acesse sua conta para continuar
               </p>
             </div>
@@ -113,7 +113,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-neutral-400 hover:text-neutral-600"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -123,8 +123,8 @@ export default function LoginPage() {
 
               <div className="flex items-center justify-between">
                 <label className="flex items-center">
-                  <input type="checkbox" className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-                  <span className="ml-2 text-sm text-gray-600">Lembrar-me</span>
+                  <input type="checkbox" className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500" />
+                  <span className="ml-2 text-sm text-neutral-600">Lembrar-me</span>
                 </label>
                 <Link href="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700">
                   Esqueceu a senha?
@@ -141,7 +141,7 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-neutral-600">
                 Não tem uma conta?{' '}
                 <Link href="/signup" className="text-primary-600 hover:text-primary-700 font-medium">
                   Criar conta

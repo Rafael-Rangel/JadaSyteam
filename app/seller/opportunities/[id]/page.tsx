@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import { useRouter, useParams } from 'next/navigation';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
-import { Package, MapPin, Calendar, DollarSign, Send, Check } from 'lucide-react';
+import PageHeader from '@/components/ui/PageHeader';
+import { MapPin, DollarSign, Send, Check } from 'lucide-react';
 
 type OpportunityDetail = {
   id: string;
@@ -25,8 +24,9 @@ type OpportunityDetail = {
   myProposal: { id: string; status: string } | null;
 };
 
-export default function OpportunityDetailPage({ params }: { params: { id: string } }) {
-  const id = params.id;
+export default function OpportunityDetailPage() {
+  const params = useParams();
+  const id = params?.id as string;
   const router = useRouter();
   const [opportunity, setOpportunity] = useState<OpportunityDetail | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<string>('pending');
@@ -43,6 +43,7 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!id) return;
     Promise.all([
       fetch(`/api/requests/${id}`).then((res) => (res.ok ? res.json() : Promise.reject(new Error('Não encontrado')))),
       fetch('/api/company').then((r) => (r.ok ? r.json() : null)),
@@ -91,7 +92,7 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
       }
       setShowProposalModal(false);
       setFormData({ price: '', deliveryTime: '', details: '', validUntil: '' });
-      setOpportunity((prev) => prev ? { ...prev, myProposal: { id: '', status: 'sent' } } : null);
+      setOpportunity((prev) => (prev ? { ...prev, myProposal: { id: '', status: 'sent' } } : null));
       router.refresh();
     } catch {
       setErrors({ price: 'Erro ao enviar proposta. Tente novamente.' });
@@ -101,14 +102,11 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
 
   if (loading || error) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header userType="seller" />
-        <main className="flex-grow py-8 bg-gray-50 flex items-center justify-center">
-          <Card className="max-w-md mx-auto">
-            {loading ? <p className="text-gray-600">Carregando...</p> : <p className="text-gray-600">{error}</p>}
-          </Card>
-        </main>
-        <Footer />
+      <div>
+        <PageHeader title="Oportunidade" description={loading ? 'Carregando…' : error || ''} />
+        <Card>
+          {loading ? <p className="text-neutral-600">Carregando…</p> : <p className="text-neutral-600">{error}</p>}
+        </Card>
       </div>
     );
   }
@@ -116,84 +114,90 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
   if (!opportunity) return null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header userType="seller" />
+    <div>
+      <div className="mb-6">
+        <Button variant="outline" onClick={() => router.back()}>
+          ← Voltar
+        </Button>
+      </div>
 
-      <main className="flex-grow py-8 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Button variant="outline" onClick={() => router.back()} className="mb-6">
-            ← Voltar
-          </Button>
+      <PageHeader title={opportunity.title} description="Detalhes da requisição e envio de proposta." />
 
-          {verificationStatus !== 'approved' && (
-            <div className="mb-6 p-4 rounded-lg text-sm bg-warning-50 border border-warning-200 text-warning-800">
-              Sua empresa está em análise de CNPJ. Você não pode enviar propostas até a aprovação.
-            </div>
-          )}
-
-          <Card className="mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">{opportunity.title}</h2>
-            <div className="space-y-4 mb-6">
-              <p className="text-gray-700">{opportunity.description}</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Quantidade</p>
-                  <p className="font-semibold text-gray-900">{opportunity.quantity} {opportunity.unit}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Categoria</p>
-                  <p className="font-semibold text-gray-900">{opportunity.category}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Prazo Desejado</p>
-                  <p className="font-semibold text-gray-900">{opportunity.deliveryDate}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Comprador</p>
-                  <p className="font-semibold text-gray-900">{opportunity.buyer.name}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4" />
-                <span>{opportunity.address}, {opportunity.city} - {opportunity.state}</span>
-              </div>
-            </div>
-
-            {hasProposal ? (
-              <div className="bg-success-50 border border-success-200 rounded-lg p-4">
-                <div className="flex items-center space-x-2 text-success-800 mb-2">
-                  <Check className="w-5 h-5" />
-                  <span className="font-semibold">Proposta Enviada</span>
-                </div>
-                <p className="text-sm text-success-700">Sua proposta foi enviada. O comprador será notificado.</p>
-              </div>
-            ) : verificationStatus === 'approved' ? (
-              <Button onClick={() => setShowProposalModal(true)}>
-                <Send className="w-5 h-5 mr-2 inline" />
-                Enviar Proposta
-              </Button>
-            ) : (
-              <Button disabled title="Aguarde a aprovação do CNPJ para enviar propostas">
-                <Send className="w-5 h-5 mr-2 inline" />
-                Enviar Proposta
-              </Button>
-            )}
-          </Card>
+      {verificationStatus !== 'approved' && (
+        <div className="mb-6 rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-800">
+          Sua empresa está em análise de CNPJ. Você não pode enviar propostas até a aprovação.
         </div>
-      </main>
+      )}
+
+      <Card>
+        <div className="mb-6 space-y-4">
+          <p className="text-neutral-700">{opportunity.description}</p>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div>
+              <p className="mb-1 text-sm text-neutral-600">Quantidade</p>
+              <p className="font-semibold text-neutral-900">
+                {opportunity.quantity} {opportunity.unit}
+              </p>
+            </div>
+            <div>
+              <p className="mb-1 text-sm text-neutral-600">Categoria</p>
+              <p className="font-semibold text-neutral-900">{opportunity.category}</p>
+            </div>
+            <div>
+              <p className="mb-1 text-sm text-neutral-600">Prazo desejado</p>
+              <p className="font-semibold text-neutral-900">{opportunity.deliveryDate}</p>
+            </div>
+            <div>
+              <p className="mb-1 text-sm text-neutral-600">Comprador</p>
+              <p className="font-semibold text-neutral-900">{opportunity.buyer.name}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-neutral-600">
+            <MapPin className="h-4 w-4 shrink-0" />
+            <span>
+              {opportunity.address}, {opportunity.city} - {opportunity.state}
+            </span>
+          </div>
+        </div>
+
+        {hasProposal ? (
+          <div className="rounded-lg border border-success-200 bg-success-50 p-4">
+            <div className="mb-2 flex items-center gap-2 text-success-800">
+              <Check className="h-5 w-5" />
+              <span className="font-semibold">Proposta enviada</span>
+            </div>
+            <p className="text-sm text-success-700">Sua proposta foi enviada. O comprador será notificado.</p>
+          </div>
+        ) : verificationStatus === 'approved' ? (
+          <Button onClick={() => setShowProposalModal(true)}>
+            <Send className="mr-2 inline h-5 w-5" />
+            Enviar proposta
+          </Button>
+        ) : (
+          <Button disabled title="Aguarde a aprovação do CNPJ para enviar propostas">
+            <Send className="mr-2 inline h-5 w-5" />
+            Enviar proposta
+          </Button>
+        )}
+      </Card>
 
       <Modal
         isOpen={showProposalModal}
-        onClose={() => { setShowProposalModal(false); setErrors({}); }}
-        title="Enviar Proposta"
+        onClose={() => {
+          setShowProposalModal(false);
+          setErrors({});
+        }}
+        title="Enviar proposta"
         size="lg"
       >
         <form onSubmit={handleSubmitProposal} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Preço (R$) <span className="text-danger-500">*</span></label>
+              <label className="mb-1 block text-sm font-medium text-neutral-700">
+                Preço (R$) <span className="text-danger-500">*</span>
+              </label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <DollarSign className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-neutral-400" />
                 <Input
                   type="number"
                   step="0.01"
@@ -206,7 +210,7 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
               </div>
             </div>
             <Input
-              label="Prazo de Entrega (dias)"
+              label="Prazo de entrega (dias)"
               type="number"
               placeholder="5"
               value={formData.deliveryTime}
@@ -215,7 +219,7 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Detalhes e Condições</label>
+            <label className="mb-1 block text-sm font-medium text-neutral-700">Detalhes e condições</label>
             <textarea
               className="input min-h-[120px] resize-none"
               placeholder="Condições de entrega, garantia, etc."
@@ -224,22 +228,22 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
             />
           </div>
           <Input
-            label="Validade da Proposta"
+            label="Validade da proposta"
             type="date"
             value={formData.validUntil}
             onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
           />
-          <div className="flex space-x-4 pt-4">
-            <Button type="button" variant="outline" onClick={() => setShowProposalModal(false)} className="flex-1">Cancelar</Button>
+          <div className="flex gap-4 pt-4">
+            <Button type="button" variant="outline" onClick={() => setShowProposalModal(false)} className="flex-1">
+              Cancelar
+            </Button>
             <Button type="submit" className="flex-1" isLoading={submitting}>
-              <Send className="w-4 h-4 mr-1 inline" />
-              Enviar Proposta
+              <Send className="mr-1 inline h-4 w-4" />
+              Enviar
             </Button>
           </div>
         </form>
       </Modal>
-
-      <Footer />
     </div>
   );
 }

@@ -48,7 +48,7 @@ const config: Config = {
   coverageDirectory: "coverage",
 
   // Setup global (mocks de Prisma, env vars)
-  setupFilesAfterFramework: ["<rootDir>/tests/setup.ts"],
+  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
 };
 
 export default createJestConfig(config);

@@ -12,6 +12,7 @@ Este diretório concentra a documentação técnica detalhada do projeto JADA, c
 - `OPERATIONS_RUNBOOK.md`: operação diária, checklist de ambiente, deploy, troubleshooting e observabilidade.
 - `COMPLIANCE_MATRIX.md`: matriz de conformidade dos itens da auditoria funcional/segurança.
 - `SECURITY_AUDIT_REPORT.md`: relatório da execução da auditoria automatizada e riscos residuais.
+- `DUE_DILIGENCE.md`: arquitetura de verificação empresarial com CNPJ.ws, Escavador e Serasa.
 
 ## Escopo
 

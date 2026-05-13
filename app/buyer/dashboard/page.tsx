@@ -1,19 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
 import Link from 'next/link';
+import Button from '@/components/Button';
+import PageHeader from '@/components/ui/PageHeader';
+import KPIStat from '@/components/ui/KPIStat';
+import DataTable, { DataTableColumn } from '@/components/ui/DataTable';
+import { requestStatusBadge } from '@/lib/dashboardUi';
 import { ShoppingCart, Package, TrendingUp, Clock, Plus, Eye } from 'lucide-react';
 
 type RequestRow = { id: string; title: string; status: string; proposals: number; created: string };
 
-type SubData = { verificationStatus?: string; limits: { requestsPerMonth: number }; usage: { requestsThisMonth: number } };
+type SubData = {
+  verificationStatus?: string;
+  limits: { requestsPerMonth: number };
+  usage: { requestsThisMonth: number };
+};
 
 export default function BuyerDashboard() {
   const { data: session, status } = useSession();
@@ -25,7 +30,6 @@ export default function BuyerDashboard() {
     const ct = (session?.user as { companyType?: string })?.companyType;
     if (status === 'authenticated' && ct === 'seller') {
       router.replace('/seller/dashboard');
-      return;
     }
   }, [session, status, router]);
 
@@ -45,7 +49,7 @@ export default function BuyerDashboard() {
       .catch(() => {});
   }, [status]);
 
-  const recentRequests = allRequests.slice(0, 5);
+  const recentRequests = useMemo(() => allRequests.slice(0, 8), [allRequests]);
   const openCount = allRequests.filter((r) => r.status === 'open' || r.status === 'receiving').length;
   const totalProposals = allRequests.reduce((acc, r) => acc + r.proposals, 0);
   const pendingCount = allRequests.filter((r) => r.status === 'receiving').length;
@@ -55,132 +59,131 @@ export default function BuyerDashboard() {
       : null;
   const isApproved = subscription?.verificationStatus === 'approved';
 
-  const stats = [
-    { label: 'Requisições Ativas', value: String(openCount), icon: Package, color: 'primary' },
-    { label: 'Propostas Recebidas', value: String(totalProposals), icon: ShoppingCart, color: 'success' },
-    { label: 'Requisições Restantes', value: remaining !== null ? String(remaining) : 'Ilimitado', icon: TrendingUp, color: 'warning' },
-    { label: 'Pendentes de Resposta', value: String(pendingCount), icon: Clock, color: 'danger' },
-  ];
-
-  const getStatusBadge = (status: string) => {
-    const badges = {
-      open: { label: 'Aberto', class: 'badge-info' },
-      receiving: { label: 'Recebendo Propostas', class: 'badge-warning' },
-      selected: { label: 'Proposta Aceita', class: 'badge-success' },
-      closed: { label: 'Finalizado', class: 'badge' },
-    };
-    const badge = badges[status as keyof typeof badges] || badges.open;
-    return <span className={`badge ${badge.class}`}>{badge.label}</span>;
-  };
+  const columns: DataTableColumn<RequestRow>[] = useMemo(
+    () => [
+      {
+        key: 'title',
+        header: 'Requisição',
+        render: (row) => <span className="font-medium text-neutral-900">{row.title}</span>,
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (row) => requestStatusBadge(row.status),
+      },
+      {
+        key: 'proposals',
+        header: 'Propostas',
+        align: 'right',
+        render: (row) => <span className="tabular-nums text-neutral-700">{row.proposals}</span>,
+      },
+      {
+        key: 'created',
+        header: 'Criada em',
+        render: (row) => (
+          <span className="text-neutral-600">{new Date(row.created).toLocaleDateString('pt-BR')}</span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: '',
+        align: 'right',
+        render: (row) => (
+          <Link href={`/buyer/requests/${row.id}`}>
+            <Button variant="outline" size="sm">
+              <Eye className="w-4 h-4 mr-1" />
+              Ver
+            </Button>
+          </Link>
+        ),
+      },
+    ],
+    []
+  );
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header userType="buyer" />
-      
-      <main className="flex-grow py-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {subscription && subscription.verificationStatus && subscription.verificationStatus !== 'approved' && (
-            <div className="mb-6 p-4 rounded-lg text-sm bg-warning-50 border border-warning-200 text-warning-800">
-              Sua empresa está em análise de CNPJ. Você não pode criar requisições de compra até a aprovação.
-            </div>
-          )}
-
-          {/* Header */}
-          <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <div className="hidden sm:block relative w-16 h-16 flex-shrink-0">
-                <Image src="/mascote.png" alt="" role="presentation" fill className="object-contain" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600 mt-1">Bem-vindo de volta{session?.user?.name ? `, ${session.user.name}` : ''}!</p>
-              </div>
-            </div>
-            {isApproved ? (
-              <Link href="/buyer/create-request">
-                <Button>
-                  <Plus className="w-5 h-5 mr-2 inline" />
-                  Nova Requisição
-                </Button>
-              </Link>
-            ) : (
-              <Button disabled title="Aguarde a aprovação do CNPJ para criar requisições">
-                <Plus className="w-5 h-5 mr-2 inline" />
-                Nova Requisição
-              </Button>
-            )}
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => {
-              const Icon = stat.icon;
-              const colorClasses = {
-                primary: 'bg-primary-100 text-primary-600',
-                success: 'bg-success-100 text-success-600',
-                warning: 'bg-warning-100 text-warning-600',
-                danger: 'bg-danger-100 text-danger-600',
-              };
-              return (
-                <Card key={index}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
-                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    </div>
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClasses[stat.color as keyof typeof colorClasses]}`}>
-                      <Icon className="w-6 h-6" />
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* Recent Requests */}
-          <Card>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Requisições Recentes</h2>
-              <Link href="/buyer/requests" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                Ver todas
-              </Link>
-            </div>
-
-            <div className="space-y-4">
-              {recentRequests.length === 0 ? (
-                <p className="text-gray-600 py-4">Nenhuma requisição ainda. Crie sua primeira requisição.</p>
-              ) : recentRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{request.title}</h3>
-                      {getStatusBadge(request.status)}
-                    </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      <span>{request.proposals} propostas recebidas</span>
-                      <span>Criada em {new Date(request.created).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                  </div>
-                  <Link href={`/buyer/requests/${request.id}`}>
-                    <Button variant="outline" size="sm">
-                      <Eye className="w-4 h-4 mr-1" />
-                      Ver Detalhes
-                    </Button>
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </Card>
+    <div>
+      {subscription && subscription.verificationStatus && subscription.verificationStatus !== 'approved' && (
+        <div className="mb-6 rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-800">
+          Sua empresa está em análise de CNPJ. Você não pode criar requisições de compra até a aprovação.
         </div>
-      </main>
+      )}
 
-      <Footer />
+      <PageHeader
+        title="Dashboard"
+        description={
+          session?.user?.name
+            ? `Bem-vindo de volta, ${session.user.name}.`
+            : 'Acompanhe suas requisições e propostas.'
+        }
+        actions={
+          isApproved ? (
+            <Link href="/buyer/create-request">
+              <Button>
+                <Plus className="mr-2 inline h-5 w-5" />
+                Nova requisição
+              </Button>
+            </Link>
+          ) : (
+            <Button disabled title="Aguarde a aprovação do CNPJ para criar requisições">
+              <Plus className="mr-2 inline h-5 w-5" />
+              Nova requisição
+            </Button>
+          )
+        }
+      />
+
+      <div className="mb-6 hidden sm:flex justify-end">
+        <div className="relative h-14 w-14 shrink-0 opacity-90">
+          <Image src="/mascote.png" alt="" role="presentation" fill className="object-contain" />
+        </div>
+      </div>
+
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <KPIStat
+          label="Requisições ativas"
+          value={openCount}
+          icon={<Package className="h-5 w-5" />}
+        />
+        <KPIStat
+          label="Propostas recebidas"
+          value={totalProposals}
+          icon={<ShoppingCart className="h-5 w-5" />}
+        />
+        <KPIStat
+          label="Restantes no mês"
+          value={remaining !== null ? remaining : 'Ilimitado'}
+          icon={<TrendingUp className="h-5 w-5" />}
+        />
+        <KPIStat
+          label="Pendentes de resposta"
+          value={pendingCount}
+          icon={<Clock className="h-5 w-5" />}
+        />
+      </div>
+
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-neutral-900">Requisições recentes</h2>
+        <Link href="/buyer/requests" className="text-sm font-medium text-primary-600 hover:text-primary-700">
+          Ver todas
+        </Link>
+      </div>
+      <DataTable<RequestRow>
+        columns={columns}
+        rows={recentRequests}
+        rowKey={(row) => row.id}
+        density="comfortable"
+        stickyHeader
+        emptyTitle="Nenhuma requisição ainda"
+        emptyDescription="Crie sua primeira requisição para receber propostas dos fornecedores."
+        emptyAction={
+          isApproved ? (
+            <Link href="/buyer/create-request">
+              <Button>Nova requisição</Button>
+            </Link>
+          ) : undefined
+        }
+      />
     </div>
   );
 }
-
-
-

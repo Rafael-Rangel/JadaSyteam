@@ -2,12 +2,16 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { verifyCnpjWithBrasilApi } from '@/lib/cnpjVerification';
+import { runDueDiligenceForCompany } from '@/lib/dueDiligence';
+import { enforceSameOrigin, withNoStore } from '@/lib/apiSecurity';
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const sameOriginError = enforceSameOrigin(request);
+  if (sameOriginError) return sameOriginError;
+
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string })?.role;
   if (role !== 'admin') {
@@ -28,19 +32,12 @@ export async function POST(
     );
   }
 
-  const result = await verifyCnpjWithBrasilApi(cnpj);
-  await prisma.company.update({
-    where: { id },
-    data: {
-      verificationStatus: result.status,
-      verifiedAt: new Date(),
-      verificationPayload: result.raw ? (result.raw as object) : undefined,
-    },
-  });
+  const summary = await runDueDiligenceForCompany(id);
 
-  return NextResponse.json({
+  return withNoStore(NextResponse.json({
     success: true,
-    verificationStatus: result.status,
-    reason: result.reason,
-  });
+    verificationStatus: summary.verificationStatus,
+    reason: `Verificação concluída (cadastral=${summary.cadastralStatus}, judicial=${summary.judicialStatus}).`,
+    riskLevel: summary.riskLevel,
+  }));
 }

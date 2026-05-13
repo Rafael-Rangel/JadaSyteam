@@ -1,0 +1,79 @@
+name: jada
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+        DIRECT_URL: ${DIRECT_URL}
+    container_name: jada-app
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      # Domínio da VPS (Hostinger). Troque para o domínio definitivo quando estiver pronto.
+      - VIRTUAL_HOST=srv1655483.hstgr.cloud
+      - LETSENCRYPT_HOST=srv1655483.hstgr.cloud
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+      - VIRTUAL_PORT=3000
+    expose:
+      - "3000"
+    networks:
+      - webproxy
+      - appnet
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:1.6
+    container_name: jada-nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - ENABLE_IPV6=false
+      - SSL_POLICY=Mozilla-Modern
+    volumes:
+      - certs:/etc/nginx/certs
+      - vhostd:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks:
+      - webproxy
+
+  acme-companion:
+    image: nginxproxy/acme-companion:2.4
+    container_name: jada-acme-companion
+    restart: unless-stopped
+    depends_on:
+      - nginx-proxy
+    environment:
+      - DEFAULT_EMAIL=${LETSENCRYPT_EMAIL}
+      - NGINX_PROXY_CONTAINER=jada-nginx-proxy
+    volumes:
+      - certs:/etc/nginx/certs
+      - vhostd:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - acme:/etc/acme.sh
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - webproxy
+
+networks:
+  webproxy:
+    driver: bridge
+  appnet:
+    driver: bridge
+
+volumes:
+  certs:
+  vhostd:
+  html:
+  acme:

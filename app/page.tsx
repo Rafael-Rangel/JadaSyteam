@@ -7,44 +7,46 @@ import { ArrowRight, ShoppingCart, Package, TrendingUp, Shield, Zap, Users } fro
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col bg-neutral-50">
       <Header />
 
       <main className="flex-grow">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 text-white py-16 md:py-20 overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+        <section className="border-b border-neutral-200 bg-white py-16 md:py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col items-center justify-between gap-12 lg:flex-row">
               <div className="flex-1 text-center lg:text-left">
-                <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6">
-                  Conecte Compradores e Vendedores
+                <p className="mb-3 text-sm font-medium uppercase tracking-wide text-primary-600">
+                  Cotação B2B
+                </p>
+                <h1 className="mb-6 text-3xl font-bold text-neutral-900 md:text-5xl lg:text-6xl">
+                  Conecte compradores e vendedores
                   <br />
-                  <span className="text-primary-200">de Forma Inteligente</span>
+                  <span className="text-primary-600">de forma inteligente</span>
                 </h1>
-                <p className="text-lg md:text-xl text-primary-100 mb-8 max-w-2xl mx-auto lg:mx-0">
+                <p className="mx-auto mb-8 max-w-2xl text-lg text-neutral-600 md:text-xl lg:mx-0">
                   Publique suas necessidades e receba propostas competitivas dos melhores fornecedores do mercado.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <div className="flex flex-col justify-center gap-4 sm:flex-row lg:justify-start">
                   <Link href="/signup">
-                    <Button size="lg" className="bg-white text-primary-700 hover:bg-primary-50">
-                      Começar Agora
-                      <ArrowRight className="w-5 h-5 ml-2 inline" />
+                    <Button size="lg" className="w-full sm:w-auto">
+                      Começar agora
+                      <ArrowRight className="ml-2 inline h-5 w-5" />
                     </Button>
                   </Link>
                   <Link href="/plans">
-                    <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary-700">
-                      Ver Planos
+                    <Button size="lg" variant="outline" className="w-full border-neutral-300 sm:w-auto">
+                      Ver planos
                     </Button>
                   </Link>
                 </div>
               </div>
-              <div className="flex-shrink-0 w-full max-w-sm lg:max-w-md">
+              <div className="w-full max-w-sm flex-shrink-0 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-6 lg:max-w-md">
                 <Image
                   src="/mascote.png"
                   alt="Mascote JADA"
                   width={400}
                   height={500}
-                  className="w-full h-auto object-contain drop-shadow-2xl -mb-[81px]"
+                  className="-mb-8 h-auto w-full object-contain drop-shadow-md"
                   priority
                 />
               </div>
@@ -52,142 +54,114 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features Section */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                Por que escolher a Jada?
-              </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+        <section className="border-b border-neutral-200 bg-neutral-50 py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-16 text-center">
+              <h2 className="mb-4 text-3xl font-bold text-neutral-900 md:text-4xl">Por que escolher a Jada?</h2>
+              <p className="mx-auto max-w-2xl text-xl text-neutral-600">
                 Uma plataforma completa para otimizar suas compras e vendas
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="card text-center">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ShoppingCart className="w-8 h-8 text-primary-600" />
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {[
+                {
+                  icon: ShoppingCart,
+                  tone: 'bg-primary-50 text-primary-600',
+                  title: 'Para compradores',
+                  text: 'Publique suas necessidades e receba múltiplas propostas competitivas dos melhores fornecedores.',
+                },
+                {
+                  icon: Package,
+                  tone: 'bg-secondary-100 text-secondary-600',
+                  title: 'Para vendedores',
+                  text: 'Receba oportunidades relevantes e envie propostas diretamente para compradores qualificados.',
+                },
+                {
+                  icon: TrendingUp,
+                  tone: 'bg-success-50 text-success-600',
+                  title: 'Economia',
+                  text: 'Compare preços, prazos e condições para tomar a melhor decisão.',
+                },
+                {
+                  icon: Zap,
+                  tone: 'bg-warning-50 text-warning-700',
+                  title: 'Rápido e eficiente',
+                  text: 'Processo simplificado que economiza tempo e agiliza suas negociações.',
+                },
+                {
+                  icon: Shield,
+                  tone: 'bg-primary-50 text-primary-600',
+                  title: 'Seguro e confiável',
+                  text: 'Plataforma segura com verificação de empresas e sistema de avaliações.',
+                },
+                {
+                  icon: Users,
+                  tone: 'bg-secondary-100 text-secondary-600',
+                  title: 'Gestão de equipe',
+                  text: 'Gerencie múltiplos usuários com diferentes níveis de permissão na sua empresa.',
+                },
+              ].map(({ icon: Icon, tone, title, text }) => (
+                <div key={title} className="card card-padding-lg text-center">
+                  <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${tone}`}>
+                    <Icon className="h-8 w-8" />
+                  </div>
+                  <h3 className="mb-2 text-xl font-semibold text-neutral-900">{title}</h3>
+                  <p className="text-neutral-600">{text}</p>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Para Compradores</h3>
-                <p className="text-gray-600">
-                  Publique suas necessidades e receba múltiplas propostas competitivas dos melhores fornecedores.
-                </p>
-              </div>
-
-              <div className="card text-center">
-                <div className="w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Package className="w-8 h-8 text-secondary-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Para Vendedores</h3>
-                <p className="text-gray-600">
-                  Receba oportunidades de negócios relevantes e envie propostas diretamente para compradores qualificados.
-                </p>
-              </div>
-
-              <div className="card text-center">
-                <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp className="w-8 h-8 text-success-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Economia Garantida</h3>
-                <p className="text-gray-600">
-                  Compare preços, prazos e condições para tomar a melhor decisão e economizar.
-                </p>
-              </div>
-
-              <div className="card text-center">
-                <div className="w-16 h-16 bg-warning-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Zap className="w-8 h-8 text-warning-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Rápido e Eficiente</h3>
-                <p className="text-gray-600">
-                  Processo simplificado que economiza tempo e agiliza suas negociações.
-                </p>
-              </div>
-
-              <div className="card text-center">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Shield className="w-8 h-8 text-primary-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Seguro e Confiável</h3>
-                <p className="text-gray-600">
-                  Plataforma segura com verificação de empresas e sistema de avaliações.
-                </p>
-              </div>
-
-              <div className="card text-center">
-                <div className="w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-secondary-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Gestão de Equipe</h3>
-                <p className="text-gray-600">
-                  Gerencie múltiplos usuários com diferentes níveis de permissão na sua empresa.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* How It Works */}
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                Como Funciona
-              </h2>
+        <section className="bg-white py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-16 text-center">
+              <h2 className="mb-4 text-3xl font-bold text-neutral-900 md:text-4xl">Como funciona</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-primary-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                  1
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+              {[
+                {
+                  step: '1',
+                  title: 'Comprador publica',
+                  text: 'O comprador cria uma requisição detalhando necessidade, quantidade, prazo e localização.',
+                },
+                {
+                  step: '2',
+                  title: 'Vendedores propõem',
+                  text: 'Vendedores relevantes recebem a oportunidade e enviam propostas com preço, prazo e condições.',
+                },
+                {
+                  step: '3',
+                  title: 'Comprador escolhe',
+                  text: 'O comprador compara propostas e escolhe a melhor. O contato é liberado e o negócio acontece.',
+                },
+              ].map(({ step, title, text }) => (
+                <div key={step} className="text-center">
+                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary-600 text-2xl font-bold text-white">
+                    {step}
+                  </div>
+                  <h3 className="mb-2 text-xl font-semibold text-neutral-900">{title}</h3>
+                  <p className="text-neutral-600">{text}</p>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Comprador Publica</h3>
-                <p className="text-gray-600">
-                  O comprador cria uma requisição detalhando sua necessidade, quantidade, prazo e localização.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-20 h-20 bg-primary-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                  2
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Vendedores Propoem</h3>
-                <p className="text-gray-600">
-                  Vendedores relevantes recebem a oportunidade e enviam propostas com preço, prazo e condições.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-20 h-20 bg-primary-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                  3
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Comprador Escolhe</h3>
-                <p className="text-gray-600">
-                  O comprador compara propostas e escolhe a melhor. O contato é liberado e o negócio acontece.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-20 bg-primary-600 text-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Pronto para começar?
-            </h2>
-            <p className="text-xl text-primary-100 mb-8">
-              Junte-se a centenas de empresas que já estão usando a Jada para otimizar suas compras e vendas.
+        <section className="border-t border-neutral-200 bg-neutral-100 py-20">
+          <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+            <h2 className="mb-4 text-3xl font-bold text-neutral-900 md:text-4xl">Pronto para começar?</h2>
+            <p className="mb-8 text-xl text-neutral-600">
+              Junte-se a empresas que já usam a Jada para otimizar compras e vendas.
             </p>
-            <div className="flex justify-center">
-              <Link href="/signup">
-                <Button size="lg" className="bg-white text-primary-700 hover:bg-primary-50">
-                  Criar Conta Grátis
-                  <ArrowRight className="w-5 h-5 ml-2 inline" />
-                </Button>
-              </Link>
-            </div>
+            <Link href="/signup">
+              <Button size="lg">
+                Criar conta
+                <ArrowRight className="ml-2 inline h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </section>
       </main>
@@ -196,5 +170,3 @@ export default function Home() {
     </div>
   );
 }
-
-

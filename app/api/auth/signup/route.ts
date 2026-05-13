@@ -5,12 +5,16 @@ import { planSlugExistsAndActive } from '@/lib/planService';
 import {
   normalizeCnpj,
   isValidCnpjFormat,
-  verifyCnpjWithBrasilApi,
 } from '@/lib/cnpjVerification';
 import { getRequestRateKey, rateLimitByKey } from '@/lib/rateLimit';
+import { runDueDiligenceForCompany } from '@/lib/dueDiligence';
+import { enforceSameOrigin } from '@/lib/apiSecurity';
 
 export async function POST(request: Request) {
   try {
+    const sameOriginError = enforceSameOrigin(request);
+    if (sameOriginError) return sameOriginError;
+
     const limiter = rateLimitByKey(`signup:${getRequestRateKey(request)}`, 10, 60_000);
     if (!limiter.allowed) {
       return NextResponse.json(
@@ -89,16 +93,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const verification = await verifyCnpjWithBrasilApi(cnpjNormalized);
-    const now = new Date();
-    await prisma.company.update({
-      where: { id: company.id },
-      data: {
-        verificationStatus: verification.status,
-        verifiedAt: now,
-        verificationPayload: verification.raw ?? undefined,
-      },
-    });
+    await runDueDiligenceForCompany(company.id);
 
     await prisma.user.create({
       data: {

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import BuyerAppShell from '@/components/app-shell/BuyerAppShell';
 
 export default async function BuyerLayout({
   children,
@@ -26,5 +27,5 @@ export default async function BuyerLayout({
     redirect('/aguardando-pagamento');
   }
 
-  return <>{children}</>;
+  return <BuyerAppShell>{children}</BuyerAppShell>;
 }

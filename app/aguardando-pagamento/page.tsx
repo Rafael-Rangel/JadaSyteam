@@ -42,7 +42,7 @@ export default function AguardandoPagamentoPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Header userType="buyer" />
-        <main className="flex-grow py-12 bg-gray-50 flex items-center justify-center">
+        <main className="flex-grow py-12 bg-neutral-50 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </main>
         <Footer />
@@ -53,21 +53,21 @@ export default function AguardandoPagamentoPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header userType="buyer" />
-      <main className="flex-grow py-12 bg-gray-50">
+      <main className="flex-grow py-12 bg-neutral-50">
         <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
           <Card>
             <div className="text-center space-y-4">
-              <h1 className="text-2xl font-bold text-gray-900">Aguardando confirmação do pagamento</h1>
+              <h1 className="text-2xl font-bold text-neutral-900">Aguardando confirmação do pagamento</h1>
               {approvalStatus !== 'approved' ? (
-                <p className="text-gray-600">
+                <p className="text-neutral-600">
                   Seu cadastro foi recebido e está em análise pela equipe. Assim que sua empresa for aprovada, a cobrança será gerada e o botão de pagamento aparecerá aqui.
                 </p>
               ) : billingStatus === 'active' ? (
-                <p className="text-gray-600">
+                <p className="text-neutral-600">
                   Pagamento confirmado com sucesso. Seu acesso completo está sendo liberado. Clique em atualizar status para continuar.
                 </p>
               ) : (
-                <p className="text-gray-600">
+                <p className="text-neutral-600">
                   Sua empresa foi aprovada. Agora finalize o pagamento para liberar o acesso completo à plataforma.
                 </p>
               )}
@@ -89,12 +89,12 @@ export default function AguardandoPagamentoPage() {
                   Pagamento identificado. Se ainda estiver bloqueado, atualize esta página.
                 </p>
               ) : (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-neutral-500">
                   Status atual: em análise administrativa.
                 </p>
               )}
               {approvalStatus === 'approved' && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-neutral-500">
                   Método escolhido: {preferredBillingType === 'CREDIT_CARD' ? 'Cartão de crédito' : preferredBillingType === 'PIX' ? 'PIX' : preferredBillingType === 'BOLETO' ? 'Boleto' : 'Não informado'}
                   {billingStatus ? ` · Cobrança: ${billingStatus}` : ''}
                 </p>
@@ -104,7 +104,7 @@ export default function AguardandoPagamentoPage() {
                   Atualizar status
                 </Button>
               </div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-neutral-500">
                 <Link href="/login" className="text-primary-600 hover:underline">Sair e fazer login</Link> em outro momento.
               </p>
             </div>

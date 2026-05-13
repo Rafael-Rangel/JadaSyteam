@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import PageHeader from '@/components/ui/PageHeader';
+import Skeleton from '@/components/ui/Skeleton';
 import { Building, User, Mail, Phone, MapPin, Save } from 'lucide-react';
 
 type CompanyData = {
@@ -101,138 +101,135 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header userType="buyer" />
-        <main className="flex-grow py-8 bg-gray-50 flex items-center justify-center">
-          <p className="text-gray-600">Carregando perfil...</p>
-        </main>
-        <Footer />
+      <div className="space-y-4">
+        <Skeleton height={32} width="40%" />
+        <Skeleton height={200} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header userType="buyer" />
+    <div>
+      <PageHeader title="Perfil da empresa" description="Dados cadastrais e de contato." />
 
-      <main className="flex-grow py-8 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Perfil da Empresa</h1>
-
-          {error && (
-            <div className="mb-6 p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger-800 text-sm">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="mb-6 p-4 bg-success-50 border border-success-200 rounded-lg text-success-800 text-sm">
-              Perfil atualizado com sucesso!
-            </div>
-          )}
-
-          {verificationStatus && verificationStatus !== 'approved' && (
-            <div className={`mb-6 p-4 rounded-lg text-sm ${verificationStatus === 'rejected' ? 'bg-danger-50 border border-danger-200 text-danger-800' : 'bg-warning-50 border border-warning-200 text-warning-800'}`}>
-              {verificationStatus === 'pending' && 'Sua empresa está em análise de CNPJ. Você não pode criar requisições de compra até a aprovação.'}
-              {verificationStatus === 'rejected' && 'CNPJ não aprovado. Verifique o número ou entre em contato. Você não pode criar requisições até a aprovação.'}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <Card className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Informações da Empresa</h2>
-              <div className="space-y-4">
-                <Input
-                  label="Nome da Empresa"
-                  value={formData.companyName}
-                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                  icon={<Building className="w-5 h-5" />}
-                  required
-                />
-                <Input
-                  label="CNPJ"
-                  placeholder="00.000.000/0000-00"
-                  value={formData.cnpj}
-                  onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                  required
-                />
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                  <textarea
-                    className="input min-h-[100px] resize-none"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
-              </div>
-            </Card>
-
-            <Card className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Endereço</h2>
-              <div className="space-y-4">
-                <Input
-                  label="Endereço"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  icon={<MapPin className="w-5 h-5" />}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="Cidade"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  />
-                  <Input
-                    label="Estado"
-                    value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  />
-                </div>
-                <Input
-                  label="CEP"
-                  value={formData.zipCode}
-                  onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                />
-              </div>
-            </Card>
-
-            <Card className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Dados do Responsável</h2>
-              <div className="space-y-4">
-                <Input
-                  label="Nome Completo"
-                  value={formData.ownerName}
-                  onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                  icon={<User className="w-5 h-5" />}
-                  required
-                />
-                <Input
-                  label="E-mail"
-                  type="email"
-                  value={formData.email}
-                  icon={<Mail className="w-5 h-5" />}
-                  disabled
-                  title="E-mail não pode ser alterado aqui"
-                />
-                <Input
-                  label="Telefone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  icon={<Phone className="w-5 h-5" />}
-                />
-              </div>
-            </Card>
-
-            <div className="flex justify-end">
-              <Button type="submit" isLoading={saving}>
-                <Save className="w-5 h-5 mr-2 inline" />
-                Salvar Alterações
-              </Button>
-            </div>
-          </form>
+      {error && (
+        <div className="mb-6 rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-800">
+          {error}
         </div>
-      </main>
+      )}
+      {success && (
+        <div className="mb-6 rounded-lg border border-success-200 bg-success-50 p-4 text-sm text-success-800">
+          Perfil atualizado com sucesso!
+        </div>
+      )}
 
-      <Footer />
+      {verificationStatus && verificationStatus !== 'approved' && (
+        <div
+          className={`mb-6 rounded-lg border p-4 text-sm ${
+            verificationStatus === 'rejected'
+              ? 'border-danger-200 bg-danger-50 text-danger-800'
+              : 'border-warning-200 bg-warning-50 text-warning-800'
+          }`}
+        >
+          {verificationStatus === 'pending' &&
+            'Sua empresa está em análise de CNPJ. Você não pode criar requisições de compra até a aprovação.'}
+          {verificationStatus === 'rejected' &&
+            'CNPJ não aprovado. Verifique o número ou entre em contato. Você não pode criar requisições até a aprovação.'}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card>
+          <h2 className="mb-6 text-lg font-semibold text-neutral-900">Informações da empresa</h2>
+          <div className="space-y-4">
+            <Input
+              label="Nome da empresa"
+              value={formData.companyName}
+              onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+              icon={<Building className="h-5 w-5" />}
+              required
+            />
+            <Input
+              label="CNPJ"
+              placeholder="00.000.000/0000-00"
+              value={formData.cnpj}
+              onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+              required
+            />
+            <div>
+              <label className="mb-1 block text-sm font-medium text-neutral-700">Descrição</label>
+              <textarea
+                className="input min-h-[100px] resize-none"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <h2 className="mb-6 text-lg font-semibold text-neutral-900">Endereço</h2>
+          <div className="space-y-4">
+            <Input
+              label="Endereço"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              icon={<MapPin className="h-5 w-5" />}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Cidade"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              />
+              <Input
+                label="Estado"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              />
+            </div>
+            <Input
+              label="CEP"
+              value={formData.zipCode}
+              onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+            />
+          </div>
+        </Card>
+
+        <Card>
+          <h2 className="mb-6 text-lg font-semibold text-neutral-900">Responsável</h2>
+          <div className="space-y-4">
+            <Input
+              label="Nome completo"
+              value={formData.ownerName}
+              onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+              icon={<User className="h-5 w-5" />}
+              required
+            />
+            <Input
+              label="E-mail"
+              type="email"
+              value={formData.email}
+              icon={<Mail className="h-5 w-5" />}
+              disabled
+              title="E-mail não pode ser alterado aqui"
+            />
+            <Input
+              label="Telefone"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              icon={<Phone className="h-5 w-5" />}
+            />
+          </div>
+        </Card>
+
+        <div className="flex justify-end">
+          <Button type="submit" isLoading={saving}>
+            <Save className="mr-2 inline h-5 w-5" />
+            Salvar alterações
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

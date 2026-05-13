@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import Card from '@/components/Card';
+import { useState, useEffect, useMemo } from 'react';
+import PageHeader from '@/components/ui/PageHeader';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
-import { Plus, Shield, UserCheck, UserX } from 'lucide-react';
+import DataTable, { DataTableColumn } from '@/components/ui/DataTable';
+import Badge from '@/components/ui/Badge';
+import { Plus } from 'lucide-react';
+import { roleBadge } from '@/lib/dashboardUi';
 
 type UserRow = {
   id: string;
@@ -39,6 +40,7 @@ export default function UsersPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const load = () => {
+    setLoading(true);
     Promise.all([
       fetch('/api/company/users').then((r) => (r.ok ? r.json() : [])),
       fetch('/api/company/subscription').then((r) => (r.ok ? r.json() : null)),
@@ -55,21 +57,37 @@ export default function UsersPage() {
     load();
   }, []);
 
-  const getRoleBadge = (role: string) => {
-    const roles: Record<string, { label: string; icon: typeof Shield; class: string }> = {
-      owner: { label: 'Dono', icon: Shield, class: 'bg-primary-100 text-primary-800' },
-      manager: { label: 'Gerente', icon: UserCheck, class: 'bg-success-100 text-success-800' },
-      employee: { label: 'Funcionário', icon: UserX, class: 'bg-gray-100 text-gray-800' },
-    };
-    const roleInfo = roles[role] || roles.employee;
-    const Icon = roleInfo.icon;
-    return (
-      <span className={`badge ${roleInfo.class} flex items-center space-x-1 w-fit`}>
-        <Icon className="w-3 h-3" />
-        <span>{roleInfo.label}</span>
-      </span>
-    );
-  };
+  const canAddUser = limits ? users.length < limits.limits.users : true;
+
+  const columns: DataTableColumn<UserRow>[] = useMemo(
+    () => [
+      {
+        key: 'name',
+        header: 'Nome',
+        render: (row) => (
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-600 text-sm font-medium text-white">
+              {row.name.charAt(0)}
+            </div>
+            <span className="font-medium text-neutral-900">{row.name}</span>
+          </div>
+        ),
+      },
+      { key: 'email', header: 'E-mail', render: (row) => <span className="text-neutral-600">{row.email}</span> },
+      {
+        key: 'phone',
+        header: 'Telefone',
+        render: (row) => <span className="text-neutral-600">{row.phone ?? '—'}</span>,
+      },
+      { key: 'role', header: 'Função', render: (row) => roleBadge(row.role) },
+      {
+        key: 'status',
+        header: 'Status',
+        render: () => <Badge tone="success">Ativo</Badge>,
+      },
+    ],
+    []
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,79 +133,39 @@ export default function UsersPage() {
     setSubmitting(false);
   };
 
-  const canAddUser = limits ? users.length < limits.limits.users : true;
-
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header userType="buyer" />
+    <div>
+      <PageHeader
+        title="Equipe"
+        description="Gerencie os usuários da sua empresa."
+        actions={
+          <Button onClick={() => setShowAddModal(true)} disabled={!canAddUser}>
+            <Plus className="mr-2 inline h-5 w-5" />
+            Adicionar usuário
+          </Button>
+        }
+      />
 
-      <main className="flex-grow py-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Gestão de Usuários</h1>
-              <p className="text-gray-600 mt-1">Gerencie os usuários da sua empresa</p>
-            </div>
-            <Button onClick={() => setShowAddModal(true)} disabled={!canAddUser}>
-              <Plus className="w-5 h-5 mr-2 inline" />
-              Adicionar Usuário
-            </Button>
-          </div>
-
-          {!canAddUser && (
-            <div className="mb-6 p-4 bg-warning-50 border border-warning-200 rounded-lg text-warning-800 text-sm">
-              Você atingiu o limite de usuários do seu plano. Faça upgrade para adicionar mais.
-            </div>
-          )}
-
-          <Card>
-            {loading ? (
-              <p className="py-8 text-center text-gray-600">Carregando...</p>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-900">Nome</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-900">E-mail</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-900">Telefone</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-900">Função</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-900">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map((user) => (
-                        <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-                                <span className="text-white text-sm font-medium">{user.name.charAt(0)}</span>
-                              </div>
-                              <span className="font-medium text-gray-900">{user.name}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">{user.email}</td>
-                          <td className="py-3 px-4 text-gray-600">{user.phone ?? '—'}</td>
-                          <td className="py-3 px-4">{getRoleBadge(user.role)}</td>
-                          <td className="py-3 px-4">
-                            <span className="badge badge-success">Ativo</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {limits && (
-                  <div className="mt-4 text-sm text-gray-600">
-                    Usuários: {users.length}/{limits.limits.users} (limite do plano)
-                  </div>
-                )}
-              </>
-            )}
-          </Card>
+      {!canAddUser && (
+        <div className="mb-6 rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-800">
+          Você atingiu o limite de usuários do seu plano. Faça upgrade para adicionar mais.
         </div>
-      </main>
+      )}
+
+      {limits && (
+        <p className="mb-4 text-sm text-neutral-600">
+          Usuários: {users.length}/{limits.limits.users} (limite do plano)
+        </p>
+      )}
+
+      <DataTable<UserRow>
+        columns={columns}
+        rows={users}
+        rowKey={(row) => row.id}
+        loading={loading}
+        emptyTitle="Nenhum usuário"
+        emptyDescription="Adicione colaboradores à sua empresa."
+      />
 
       <Modal
         isOpen={showAddModal}
@@ -196,11 +174,11 @@ export default function UsersPage() {
           setFormData({ name: '', email: '', phone: '', password: '', role: 'employee' });
           setErrors({});
         }}
-        title="Adicionar Novo Usuário"
+        title="Adicionar usuário"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Nome Completo"
+            label="Nome completo"
             placeholder="João Silva"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -232,7 +210,7 @@ export default function UsersPage() {
             required
           />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Função</label>
+            <label className="mb-1 block text-sm font-medium text-neutral-700">Função</label>
             <select
               className="input"
               value={formData.role}
@@ -242,7 +220,7 @@ export default function UsersPage() {
               <option value="manager">Gerente</option>
             </select>
           </div>
-          <div className="flex space-x-4 pt-4">
+          <div className="flex gap-4 pt-4">
             <Button
               type="button"
               variant="outline"
@@ -256,13 +234,11 @@ export default function UsersPage() {
               Cancelar
             </Button>
             <Button type="submit" className="flex-1" isLoading={submitting}>
-              Adicionar Usuário
+              Adicionar
             </Button>
           </div>
         </form>
       </Modal>
-
-      <Footer />
     </div>
   );
 }

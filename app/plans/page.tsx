@@ -13,19 +13,19 @@ export default async function PlansPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-grow py-12 bg-gray-50">
+      <main className="flex-grow py-12 bg-neutral-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">
               Escolha o Plano Ideal
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
               Planos flexíveis para compradores, vendedores ou ambos. Escolha o que melhor se adapta à sua empresa.
             </p>
           </div>
 
           {plans.length === 0 ? (
-            <p className="text-center text-gray-500">Nenhum plano disponível no momento.</p>
+            <p className="text-center text-neutral-500">Nenhum plano disponível no momento.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
               {plans.map((plan) => (
@@ -43,13 +43,13 @@ export default async function PlansPage() {
                   )}
 
                   <div className="text-center mb-6">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-                    <p className="text-gray-600 mb-4">{plan.description}</p>
+                    <h3 className="text-2xl font-bold text-neutral-900 mb-2">{plan.name}</h3>
+                    <p className="text-neutral-600 mb-4">{plan.description}</p>
                     <div className="mb-4">
-                      <span className="text-4xl font-bold text-gray-900">
+                      <span className="text-4xl font-bold text-neutral-900">
                         R$ {plan.price.toLocaleString('pt-BR')}
                       </span>
-                      <span className="text-gray-600">/mês</span>
+                      <span className="text-neutral-600">/mês</span>
                     </div>
                   </div>
 
@@ -57,7 +57,7 @@ export default async function PlansPage() {
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-start space-x-2">
                         <Check className="w-5 h-5 text-success-600 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-700">{feature}</span>
+                        <span className="text-neutral-700">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -76,32 +76,32 @@ export default async function PlansPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
+          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8">
+            <h2 className="text-2xl font-bold text-neutral-900 mb-4 text-center">
               Perguntas Frequentes sobre Planos
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Posso ser comprador e vendedor?</h3>
-                <p className="text-gray-600">
+                <h3 className="font-semibold text-neutral-900 mb-2">Posso ser comprador e vendedor?</h3>
+                <p className="text-neutral-600">
                   Sim! Você pode escolher ser apenas comprador, apenas vendedor ou ambos. Os limites se aplicam conforme o tipo de uso.
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Posso mudar de plano depois?</h3>
-                <p className="text-gray-600">
+                <h3 className="font-semibold text-neutral-900 mb-2">Posso mudar de plano depois?</h3>
+                <p className="text-neutral-600">
                   Sim, você pode fazer upgrade ou downgrade a qualquer momento. As alterações são aplicadas no próximo ciclo de cobrança.
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">O que acontece se eu exceder os limites?</h3>
-                <p className="text-gray-600">
+                <h3 className="font-semibold text-neutral-900 mb-2">O que acontece se eu exceder os limites?</h3>
+                <p className="text-neutral-600">
                   Você receberá uma notificação e poderá fazer upgrade de plano ou comprar pacotes adicionais.
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Há período de teste?</h3>
-                <p className="text-gray-600">
+                <h3 className="font-semibold text-neutral-900 mb-2">Há período de teste?</h3>
+                <p className="text-neutral-600">
                   Oferecemos período de teste de 7 dias para você conhecer a plataforma antes de assinar.
                 </p>
               </div>

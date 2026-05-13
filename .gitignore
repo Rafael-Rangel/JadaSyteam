@@ -30,10 +30,12 @@ yarn-error.log*
 
 # local env files (não commitar .env com segredos)
 .env
+.env.production
 .env*.local
 
 # credenciais do admin (geradas por npm run create-admin)
 admin-credentials.txt
+credencaias.md
 
 # banco SQLite local (não versionar)
 dev.db

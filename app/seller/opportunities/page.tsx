@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import PageHeader from '@/components/ui/PageHeader';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import Badge from '@/components/ui/Badge';
 import { Search, Eye, MapPin, Calendar, Package, SlidersHorizontal, X } from 'lucide-react';
 
 type OpportunityItem = {
@@ -86,21 +86,16 @@ export default function OpportunitiesPage() {
     filters.city || filters.state;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header userType="seller" />
-      
-      <main className="flex-grow py-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Oportunidades</h1>
-            <p className="text-gray-600 mt-1">Encontre novas oportunidades de negócio</p>
-          </div>
+    <div>
+      <PageHeader title="Oportunidades" description="Encontre novas oportunidades de negócio." />
+
+      <div className="max-w-7xl mx-auto w-full">
 
           {/* Search Bar */}
           <Card className="mb-4">
             <div className="flex items-center space-x-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
                 <Input
                   placeholder="Buscar por título, descrição ou comprador..."
                   value={filters.searchTerm}
@@ -128,7 +123,7 @@ export default function OpportunitiesPage() {
           {showFilters && (
             <Card className="mb-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Filtros Avançados</h3>
+                <h3 className="text-lg font-semibold text-neutral-900">Filtros Avançados</h3>
                 {hasActiveFilters && (
                   <Button variant="outline" size="sm" onClick={clearFilters}>
                     <X className="w-4 h-4 mr-1" />
@@ -156,7 +151,7 @@ export default function OpportunitiesPage() {
 
                 {/* Categoria */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">
                     Categoria
                   </label>
                   <select
@@ -173,7 +168,7 @@ export default function OpportunitiesPage() {
 
                 {/* Empresa Específica */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">
                     Empresa Específica
                   </label>
                   <select
@@ -208,7 +203,7 @@ export default function OpportunitiesPage() {
 
                 {/* Estado */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">
                     Estado
                   </label>
                   <select
@@ -229,7 +224,7 @@ export default function OpportunitiesPage() {
           )}
 
           {/* Results Count */}
-          <div className="mb-4 text-sm text-gray-600">
+          <div className="mb-4 text-sm text-neutral-600">
             <p>
               Mostrando <strong>{filteredOpportunities.length}</strong> de <strong>{opportunities.length}</strong> oportunidades
             </p>
@@ -239,15 +234,15 @@ export default function OpportunitiesPage() {
           <div className="space-y-4">
             {loading ? (
               <Card className="text-center py-12">
-                <p className="text-gray-600">Carregando...</p>
+                <p className="text-neutral-600">Carregando...</p>
               </Card>
             ) : error ? (
               <Card className="text-center py-12">
-                <p className="text-gray-600">{error}</p>
+                <p className="text-neutral-600">{error}</p>
               </Card>
             ) : filteredOpportunities.length === 0 ? (
               <Card className="text-center py-12">
-                <p className="text-gray-600 mb-4">Nenhuma oportunidade encontrada com os filtros aplicados</p>
+                <p className="text-neutral-600 mb-4">Nenhuma oportunidade encontrada com os filtros aplicados</p>
                 {hasActiveFilters && (
                   <Button variant="outline" onClick={clearFilters}>
                     Limpar Filtros
@@ -260,12 +255,10 @@ export default function OpportunitiesPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{opportunity.title}</h3>
-                        {opportunity.hasProposal && (
-                          <span className="badge badge-success">Proposta Enviada</span>
-                        )}
+                        <h3 className="text-lg font-semibold text-neutral-900">{opportunity.title}</h3>
+                        {opportunity.hasProposal && <Badge tone="success">Proposta enviada</Badge>}
                       </div>
-                      <div className="flex items-center space-x-6 text-sm text-gray-600 flex-wrap gap-2">
+                      <div className="flex items-center space-x-6 text-sm text-neutral-600 flex-wrap gap-2">
                         <span className="flex items-center space-x-1">
                           <Package className="w-4 h-4" />
                           <span className="font-medium">{opportunity.buyer}</span>
@@ -274,13 +267,13 @@ export default function OpportunitiesPage() {
                           <MapPin className="w-4 h-4" />
                           <span>{opportunity.city} - {opportunity.state}</span>
                         </span>
-                        <span className="badge badge-info">{opportunity.category}</span>
+                        <Badge tone="info">{opportunity.category}</Badge>
                         <span className="flex items-center space-x-1">
                           <Calendar className="w-4 h-4" />
                           <span>Entrega: {new Date(opportunity.deliveryDate).toLocaleDateString('pt-BR')}</span>
                         </span>
                       </div>
-                      <p className="text-sm text-gray-500 mt-2">{opportunity.description}</p>
+                      <p className="text-sm text-neutral-500 mt-2">{opportunity.description}</p>
                     </div>
                     <Link href={`/seller/opportunities/${opportunity.id}`}>
                       <Button variant="outline" size="sm">
@@ -294,9 +287,6 @@ export default function OpportunitiesPage() {
             )}
           </div>
         </div>
-      </main>
-
-      <Footer />
     </div>
   );
 }

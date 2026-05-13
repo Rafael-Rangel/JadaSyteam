@@ -56,11 +56,11 @@ export default function ContactPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-grow py-12 bg-gray-50">
+      <main className="flex-grow py-12 bg-neutral-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Entre em Contato</h1>
-            <p className="text-xl text-gray-600">Estamos aqui para ajudar você</p>
+            <h1 className="text-4xl font-bold text-neutral-900 mb-4">Entre em Contato</h1>
+            <p className="text-xl text-neutral-600">Estamos aqui para ajudar você</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -70,7 +70,7 @@ export default function ContactPage() {
                   <Mail className="w-6 h-6 text-primary-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">E-mail</h3>
+                  <h3 className="font-semibold text-neutral-900">E-mail</h3>
                   <a href="mailto:contato@jada.com.br" className="text-primary-600 hover:text-primary-700">
                     contato@jada.com.br
                   </a>
@@ -84,7 +84,7 @@ export default function ContactPage() {
                   <Phone className="w-6 h-6 text-primary-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Telefone</h3>
+                  <h3 className="font-semibold text-neutral-900">Telefone</h3>
                   <a href="tel:+5511999999999" className="text-primary-600 hover:text-primary-700">
                     (11) 99999-9999
                   </a>
@@ -99,8 +99,8 @@ export default function ContactPage() {
                 <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="w-8 h-8 text-success-600" />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Mensagem enviada!</h2>
-                <p className="text-gray-600 mb-6">
+                <h2 className="text-xl font-bold text-neutral-900 mb-2">Mensagem enviada!</h2>
+                <p className="text-neutral-600 mb-6">
                   Obrigado pelo contato. Entraremos em contato em breve.
                 </p>
                 <Button onClick={() => setSuccess(false)} variant="outline">
@@ -147,7 +147,7 @@ export default function ContactPage() {
                 />
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">
                     Mensagem <span className="text-danger-500">*</span>
                   </label>
                   <textarea

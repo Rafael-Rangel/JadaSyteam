@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { normalizeCnpj, isValidCnpjFormat, verifyCnpjWithBrasilApi } from '@/lib/cnpjVerification';
+import { enforceSameOrigin, withNoStore } from '@/lib/apiSecurity';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -46,10 +47,13 @@ export async function GET() {
     res.sellerReceiveAll = company.sellerReceiveAll ?? false;
     res.sellerCategories = company.sellerCategories ? JSON.parse(company.sellerCategories) : [];
   }
-  return NextResponse.json(res);
+  return withNoStore(NextResponse.json(res));
 }
 
 export async function PATCH(request: Request) {
+  const sameOriginError = enforceSameOrigin(request);
+  if (sameOriginError) return sameOriginError;
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
@@ -127,7 +131,7 @@ export async function PATCH(request: Request) {
           data: {
             verificationStatus: verification.status,
             verifiedAt: new Date(),
-            verificationPayload: verification.raw ?? undefined,
+            verificationPayload: (verification.raw as any) ?? undefined,
           },
         });
       }
@@ -148,7 +152,7 @@ export async function PATCH(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true });
+    return withNoStore(NextResponse.json({ success: true }));
   } catch (e) {
     console.error('Company PATCH error:', e);
     return NextResponse.json({ error: 'Erro ao atualizar perfil.' }, { status: 500 });

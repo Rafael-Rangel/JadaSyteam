@@ -54,11 +54,11 @@ export default async function FAQPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <main className="flex-grow py-12 bg-gray-50">
+      <main className="flex-grow py-12 bg-neutral-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Perguntas Frequentes</h1>
-            <p className="text-xl text-gray-600">
+            <h1 className="text-4xl font-bold text-neutral-900 mb-4">Perguntas Frequentes</h1>
+            <p className="text-xl text-neutral-600">
               Tire suas dúvidas sobre a plataforma Jada
             </p>
           </div>
@@ -68,10 +68,10 @@ export default async function FAQPage() {
               <Card key={index}>
                 <details className="group">
                   <summary className="flex items-center justify-between cursor-pointer list-none">
-                    <h3 className="font-semibold text-gray-900 pr-4">{faq.question}</h3>
-                    <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0 transform group-open:rotate-180 transition-transform" />
+                    <h3 className="font-semibold text-neutral-900 pr-4">{faq.question}</h3>
+                    <ChevronDown className="w-5 h-5 text-neutral-400 flex-shrink-0 transform group-open:rotate-180 transition-transform" />
                   </summary>
-                  <p className="mt-4 text-gray-600 leading-relaxed">{faq.answer}</p>
+                  <p className="mt-4 text-neutral-600 leading-relaxed">{faq.answer}</p>
                 </details>
               </Card>
             ))}

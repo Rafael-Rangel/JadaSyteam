@@ -1,22 +1,49 @@
-import { ReactNode } from 'react';
+import { ElementType, ReactNode, MouseEventHandler } from 'react';
+
+type Padding = 'none' | 'sm' | 'md' | 'lg';
+type Tone = 'default' | 'subtle' | 'elevated';
 
 interface CardProps {
   children: ReactNode;
   className?: string;
-  onClick?: () => void;
+  onClick?: MouseEventHandler<HTMLElement>;
   hover?: boolean;
+  padding?: Padding;
+  tone?: Tone;
+  as?: ElementType;
 }
 
-export default function Card({ children, className = '', onClick, hover = false }: CardProps) {
+const paddingClass: Record<Padding, string> = {
+  none: '',
+  sm: 'card-padding-sm',
+  md: 'card-padding-md',
+  lg: 'card-padding-lg',
+};
+
+const toneClass: Record<Tone, string> = {
+  default: '',
+  subtle: 'card-tone-subtle',
+  elevated: 'card-tone-elevated',
+};
+
+export default function Card({
+  children,
+  className = '',
+  onClick,
+  hover = false,
+  padding = 'md',
+  tone = 'default',
+  as: Tag = 'div',
+}: CardProps) {
+  const interactive = !!onClick || hover;
   return (
-    <div
-      className={`card ${hover ? 'hover:shadow-md transition-shadow cursor-pointer' : ''} ${className}`}
+    <Tag
       onClick={onClick}
+      className={`card ${paddingClass[padding]} ${toneClass[tone]} ${
+        interactive ? 'transition-shadow hover:shadow-sm cursor-pointer' : ''
+      } ${className}`}
     >
       {children}
-    </div>
+    </Tag>
   );
 }
-
-
-

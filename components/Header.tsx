@@ -64,7 +64,7 @@ export default function Header({ userType: propUserType = null, userName: propUs
   const links = userType === 'buyer' ? buyerLinks : userType === 'seller' ? sellerLinks : userType === 'admin' ? adminLinks : [];
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/90 shadow-sm backdrop-blur">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -78,7 +78,7 @@ export default function Header({ userType: propUserType = null, userName: propUs
                 className="h-10 w-auto object-contain"
                 priority
               />
-              <span className="text-xl font-bold text-gray-900 hidden sm:inline">JADA</span>
+              <span className="text-xl font-bold text-neutral-900 hidden sm:inline">JADA</span>
             </Link>
           </div>
 
@@ -95,7 +95,7 @@ export default function Header({ userType: propUserType = null, userName: propUs
                     className={`flex items-center space-x-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-primary-50 text-primary-700'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        : 'text-neutral-700 hover:bg-neutral-100'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -109,13 +109,13 @@ export default function Header({ userType: propUserType = null, userName: propUs
           {/* Public Navigation */}
           {isPublicPage && (
             <div className="hidden md:flex items-center space-x-6">
-              <Link href="/plans" className="text-gray-700 hover:text-primary-600 font-medium">
+              <Link href="/plans" className="text-neutral-700 hover:text-primary-600 font-medium">
                 Planos
               </Link>
-              <Link href="/about" className="text-gray-700 hover:text-primary-600 font-medium">
+              <Link href="/about" className="text-neutral-700 hover:text-primary-600 font-medium">
                 Sobre
               </Link>
-              <Link href="/faq" className="text-gray-700 hover:text-primary-600 font-medium">
+              <Link href="/faq" className="text-neutral-700 hover:text-primary-600 font-medium">
                 FAQ
               </Link>
             </div>
@@ -127,7 +127,7 @@ export default function Header({ userType: propUserType = null, userName: propUs
               <>
                 <Link
                   href="/login"
-                  className="hidden md:block text-gray-700 hover:text-primary-600 font-medium"
+                  className="hidden md:block text-neutral-700 hover:text-primary-600 font-medium"
                 >
                   Entrar
                 </Link>
@@ -142,23 +142,23 @@ export default function Header({ userType: propUserType = null, userName: propUs
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-neutral-100"
                 >
                   <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
                       {userName?.charAt(0).toUpperCase() || 'U'}
                     </span>
                   </div>
-                  <span className="hidden md:block text-sm font-medium text-gray-700">
+                  <span className="hidden md:block text-sm font-medium text-neutral-700">
                     {userName || 'Usuário'}
                   </span>
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-50">
                     <Link
                       href={userType === 'buyer' ? '/buyer/profile' : userType === 'seller' ? '/seller/profile' : '/admin/profile'}
-                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center space-x-2 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <User className="w-4 h-4" />
@@ -166,16 +166,16 @@ export default function Header({ userType: propUserType = null, userName: propUs
                     </Link>
                     <Link
                       href={userType === 'buyer' ? '/buyer/subscription' : userType === 'seller' ? '/seller/subscription' : '#'}
-                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center space-x-2 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <Settings className="w-4 h-4" />
                       <span>Assinatura</span>
                     </Link>
-                    <div className="border-t border-gray-200 my-1"></div>
+                    <div className="border-t border-neutral-200 my-1"></div>
                     <button
                       type="button"
-                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-danger-600 hover:bg-gray-100"
+                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-danger-600 hover:bg-neutral-100"
                       onClick={() => { setUserMenuOpen(false); signOut({ callbackUrl: '/' }); }}
                     >
                       <LogOut className="w-4 h-4" />
@@ -189,7 +189,7 @@ export default function Header({ userType: propUserType = null, userName: propUs
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100"
+              className="md:hidden p-2 rounded-lg text-neutral-700 hover:bg-neutral-100"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -198,7 +198,7 @@ export default function Header({ userType: propUserType = null, userName: propUs
 
         {/* Mobile menu */}
         {mobileMenuOpen && !isPublicPage && (
-          <div className="md:hidden py-4 border-t border-gray-200">
+          <div className="md:hidden py-4 border-t border-neutral-200">
             <div className="flex flex-col space-y-1">
               {links.map((link) => {
                 const Icon = link.icon;
@@ -211,7 +211,7 @@ export default function Header({ userType: propUserType = null, userName: propUs
                     className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium ${
                       isActive
                         ? 'bg-primary-50 text-primary-700'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        : 'text-neutral-700 hover:bg-neutral-100'
                     }`}
                   >
                     <Icon className="w-4 h-4" />

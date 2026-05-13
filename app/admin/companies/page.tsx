@@ -1,13 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import Card from '@/components/Card';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Search,
+  Check,
+  X,
+  RefreshCw,
+  FileText,
+  Edit,
+  ShieldCheck,
+  Activity,
+} from 'lucide-react';
+import PageHeader from '@/components/ui/PageHeader';
+import Tabs from '@/components/ui/Tabs';
+import Badge from '@/components/ui/Badge';
+import DataTable, { DataTableColumn } from '@/components/ui/DataTable';
+import ActionMenu, { ActionMenuItem } from '@/components/ui/ActionMenu';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
-import { Search, Edit, Check, X, RefreshCw, FileText } from 'lucide-react';
 
 type Company = {
   id: string;
@@ -19,6 +30,9 @@ type Company = {
   approvalStatus: string;
   verificationStatus: string;
   billingStatus: string | null;
+  riskLevel: string;
+  serasaScore: number | null;
+  lastDueDiligenceAt: string | null;
   verifiedAt: string | null;
   createdAt: string;
   usersCount: number;
@@ -28,170 +42,224 @@ type Company = {
 
 type PlanOption = { slug: string; name: string };
 
+type Tab = 'not-approved' | 'approved' | 'all';
+
+const typeLabel: Record<string, string> = {
+  buyer: 'Comprador',
+  seller: 'Vendedor',
+  both: 'Ambos',
+};
+
+const typeBadgeTone: Record<string, 'info' | 'accent' | 'warning' | 'neutral'> = {
+  buyer: 'info',
+  seller: 'accent',
+  both: 'warning',
+};
+
+const approvalLabel: Record<string, string> = {
+  approved: 'Aprovada',
+  pending: 'Em análise',
+  rejected: 'Rejeitada',
+};
+
+const approvalTone: Record<string, 'success' | 'warning' | 'danger'> = {
+  approved: 'success',
+  pending: 'warning',
+  rejected: 'danger',
+};
+
+const riskLabel: Record<string, string> = {
+  low: 'Baixo',
+  medium: 'Médio',
+  high: 'Alto',
+  unknown: 'Não avaliado',
+};
+
+const riskTone: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> = {
+  low: 'success',
+  medium: 'warning',
+  high: 'danger',
+  unknown: 'neutral',
+};
+
+function formatCnpj(cnpj: string | null): string {
+  if (!cnpj) return '—';
+  const digits = cnpj.replace(/\D/g, '');
+  if (digits.length !== 14) return cnpj;
+  return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+}
+
+function formatDate(s?: string | null): string {
+  if (!s) return '—';
+  try {
+    return new Date(s).toLocaleDateString('pt-BR');
+  } catch {
+    return '—';
+  }
+}
+
+function formatCurrency(v: unknown) {
+  if (v == null) return '—';
+  const n = typeof v === 'number' ? v : parseFloat(String(v));
+  if (Number.isNaN(n)) return String(v);
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
+}
+
 function VerificationDetailContent({
   company,
   payload,
-  onClose,
-  onApprove,
-  onReject,
-  onReverify,
-  isUpdating,
-  isVerifying,
 }: {
   company: Company;
   payload: Record<string, unknown> | null;
-  onClose: () => void;
-  onApprove: () => void;
-  onReject: () => void;
-  onReverify: () => void;
-  isUpdating: boolean;
-  isVerifying: boolean;
 }) {
-  const formatCurrency = (v: unknown) => {
-    if (v == null) return '—';
-    const n = typeof v === 'number' ? v : parseFloat(String(v));
-    if (isNaN(n)) return String(v);
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
-  };
-  const formatDate = (v: unknown) => {
-    if (!v || typeof v !== 'string') return '—';
-    try {
-      return new Date(v).toLocaleDateString('pt-BR');
-    } catch {
-      return String(v);
-    }
-  };
-  const getVerificationBadge = (status: string) => {
-    const map: Record<string, { label: string; class: string }> = {
-      pending: { label: 'Em análise', class: 'badge-warning' },
-      approved: { label: 'Aprovado', class: 'badge-success' },
-      rejected: { label: 'Rejeitado', class: 'badge-danger' },
-    };
-    const t = map[status] || map.pending;
-    return <span className={`badge ${t.class}`}>{t.label}</span>;
-  };
-
   const p = payload || {};
-  const situacao = String(p.descricao_situacao_cadastral ?? p.situacao_cadastral ?? '—').trim() || 'Não informada';
+  const situacao =
+    String(p.descricao_situacao_cadastral ?? p.situacao_cadastral ?? '—').trim() ||
+    'Não informada';
   const razaoSocial = String(p.razao_social ?? '—');
   const nomeFantasia = p.nome_fantasia ? String(p.nome_fantasia) : null;
   const cnaeDesc = p.cnae_fiscal_descricao ? String(p.cnae_fiscal_descricao) : '';
   const cnaeCod = p.cnae_fiscal != null ? String(p.cnae_fiscal) : '';
-  const cnae = cnaeDesc || cnaeCod ? `${cnaeDesc}${cnaeDesc && cnaeCod ? ` (${cnaeCod})` : cnaeCod ? `(${cnaeCod})` : ''}`.trim() || '—' : '—';
+  const cnae =
+    cnaeDesc || cnaeCod
+      ? `${cnaeDesc}${cnaeDesc && cnaeCod ? ` (${cnaeCod})` : cnaeCod ? `(${cnaeCod})` : ''}`.trim() ||
+        '—'
+      : '—';
   const natureza = String(p.natureza_juridica ?? '—');
   const capital = p.capital_social != null ? formatCurrency(p.capital_social) : '—';
   const porte = String(p.descricao_porte ?? p.porte ?? '—');
-  const dataAbertura = formatDate(p.data_inicio_atividade);
-  const dataSituacao = formatDate(p.data_situacao_cadastral);
-  const matrizFilial = String(p.descricao_identificador_matriz_filial ?? p.identificador_matriz_filial ?? '—');
-  const logradouro = [p.descricao_tipo_de_logradouro, p.logradouro, p.numero, p.complemento].filter(Boolean).map(String).join(' ').trim() || '—';
+  const dataAbertura = formatDate(typeof p.data_inicio_atividade === 'string' ? (p.data_inicio_atividade as string) : null);
+  const dataSituacao = formatDate(typeof p.data_situacao_cadastral === 'string' ? (p.data_situacao_cadastral as string) : null);
+  const matrizFilial = String(
+    p.descricao_identificador_matriz_filial ?? p.identificador_matriz_filial ?? '—'
+  );
+  const logradouro =
+    [p.descricao_tipo_de_logradouro, p.logradouro, p.numero, p.complemento]
+      .filter(Boolean)
+      .map(String)
+      .join(' ')
+      .trim() || '—';
   const bairro = String(p.bairro ?? '—');
   const cidade = [p.municipio, p.uf].filter(Boolean).map(String).join(' / ').trim() || '—';
   const cep = p.cep ? String(p.cep).replace(/^(\d{5})(\d{3})$/, '$1-$2') : '—';
-  const telefone = p.ddd_telefone_1 ? `(${String(p.ddd_telefone_1).slice(0, 2)}) ${String(p.ddd_telefone_1).slice(2)}` : '—';
+  const telefone = p.ddd_telefone_1
+    ? `(${String(p.ddd_telefone_1).slice(0, 2)}) ${String(p.ddd_telefone_1).slice(2)}`
+    : '—';
   const email = p.email ? String(p.email) : '—';
-  const qsa = Array.isArray(p.qsa) ? (p.qsa as { nome_socio?: string; qualificacao_socio?: string }[]) : [];
+  const qsa = Array.isArray(p.qsa)
+    ? (p.qsa as { nome_socio?: string; qualificacao_socio?: string }[])
+    : [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-2 border-b border-gray-200 pb-4">
-        <div>
-          <h3 className="font-semibold text-gray-900">{company.name}</h3>
-          <p className="text-sm text-gray-600">CNPJ: {company.cnpj || '—'}</p>
-          <p className="text-sm text-gray-600 mt-1">
-            Status operacional: {getVerificationBadge(company.approvalStatus)}
-            {company.verifiedAt && (
-              <> · Verificado em {new Date(company.verifiedAt).toLocaleDateString('pt-BR')} às {new Date(company.verifiedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</>
-            )}
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-neutral-200">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold text-neutral-900 truncate">{company.name}</h3>
+          <p className="mt-0.5 text-xs text-neutral-500">
+            CNPJ <span className="font-mono">{formatCnpj(company.cnpj)}</span>
           </p>
         </div>
-      </div>
+        <div className="flex items-center gap-2">
+          <Badge tone={approvalTone[company.approvalStatus] ?? 'warning'}>
+            {approvalLabel[company.approvalStatus] ?? 'Em análise'}
+          </Badge>
+          {company.verifiedAt && (
+            <span className="text-[11px] text-neutral-500">
+              Verificada em {formatDate(company.verifiedAt)}
+            </span>
+          )}
+        </div>
+      </header>
 
       {!payload ? (
-        <p className="text-gray-500 py-4">Nenhum dado de verificação disponível. Use &quot;Reverificar&quot; para consultar a BrasilAPI.</p>
+        <div className="surface card-padding-md text-sm text-neutral-500">
+          Nenhum dado de verificação disponível. Use “Reverificar” para consultar a BrasilAPI.
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="font-medium text-gray-900 mb-3">Situação cadastral</h4>
-            <div className="space-y-2 text-sm">
-              <p><span className="text-gray-600">Situação:</span> <strong>{situacao}</strong></p>
-              <p><span className="text-gray-600">Razão social:</span> {razaoSocial}</p>
-              {nomeFantasia && <p><span className="text-gray-600">Nome fantasia:</span> {nomeFantasia}</p>}
-              <p><span className="text-gray-600">Matriz/Filial:</span> {matrizFilial}</p>
-              <p><span className="text-gray-600">Data início atividade:</span> {dataAbertura}</p>
-              <p><span className="text-gray-600">Data situação cadastral:</span> {dataSituacao}</p>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="surface card-padding-md">
+            <h4 className="text-sm font-semibold text-neutral-900 mb-3">Situação cadastral</h4>
+            <dl className="space-y-2 text-sm">
+              <Row label="Situação" value={<span className="font-medium text-neutral-900">{situacao}</span>} />
+              <Row label="Razão social" value={razaoSocial} />
+              {nomeFantasia && <Row label="Nome fantasia" value={nomeFantasia} />}
+              <Row label="Matriz / Filial" value={matrizFilial} />
+              <Row label="Início atividade" value={dataAbertura} />
+              <Row label="Data situação" value={dataSituacao} />
+            </dl>
           </div>
-          <div>
-            <h4 className="font-medium text-gray-900 mb-3">Atividade e porte</h4>
-            <div className="space-y-2 text-sm">
-              <p><span className="text-gray-600">CNAE principal:</span> {cnae}</p>
-              <p><span className="text-gray-600">Natureza jurídica:</span> {natureza}</p>
-              <p><span className="text-gray-600">Porte:</span> {porte}</p>
-              <p><span className="text-gray-600">Capital social:</span> {capital}</p>
-            </div>
+
+          <div className="surface card-padding-md">
+            <h4 className="text-sm font-semibold text-neutral-900 mb-3">Atividade e porte</h4>
+            <dl className="space-y-2 text-sm">
+              <Row label="CNAE principal" value={cnae} />
+              <Row label="Natureza jurídica" value={natureza} />
+              <Row label="Porte" value={porte} />
+              <Row label="Capital social" value={capital} />
+            </dl>
           </div>
-          <div className="md:col-span-2">
-            <h4 className="font-medium text-gray-900 mb-3">Endereço e contato</h4>
-            <div className="space-y-2 text-sm">
-              <p><span className="text-gray-600">Logradouro:</span> {logradouro}</p>
-              <p><span className="text-gray-600">Bairro:</span> {bairro}</p>
-              <p><span className="text-gray-600">Município / UF:</span> {cidade}</p>
-              <p><span className="text-gray-600">CEP:</span> {cep}</p>
-              <p><span className="text-gray-600">Telefone:</span> {telefone}</p>
-              {email !== '—' && <p><span className="text-gray-600">E-mail:</span> {email}</p>}
-            </div>
+
+          <div className="surface card-padding-md md:col-span-2">
+            <h4 className="text-sm font-semibold text-neutral-900 mb-3">Endereço e contato</h4>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+              <Row label="Logradouro" value={logradouro} />
+              <Row label="Bairro" value={bairro} />
+              <Row label="Município / UF" value={cidade} />
+              <Row label="CEP" value={cep} />
+              <Row label="Telefone" value={telefone} />
+              {email !== '—' && <Row label="E-mail" value={email} />}
+            </dl>
           </div>
+
           {qsa.length > 0 && (
-            <div className="md:col-span-2">
-              <h4 className="font-medium text-gray-900 mb-3">Quadro de sócios e administradores (QSA)</h4>
-              <div className="overflow-x-auto max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+            <div className="surface card-padding-md md:col-span-2">
+              <h4 className="text-sm font-semibold text-neutral-900 mb-3">
+                Quadro de sócios e administradores
+              </h4>
+              <div className="overflow-x-auto max-h-56 overflow-y-auto rounded-md border border-neutral-200">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="text-left py-2 px-3 font-medium text-gray-700">Nome</th>
-                      <th className="text-left py-2 px-3 font-medium text-gray-700">Qualificação</th>
+                  <thead className="bg-neutral-50/80 sticky top-0">
+                    <tr className="border-b border-neutral-200">
+                      <th className="text-left py-2 px-3 text-xs font-medium uppercase tracking-wider text-neutral-500">
+                        Nome
+                      </th>
+                      <th className="text-left py-2 px-3 text-xs font-medium uppercase tracking-wider text-neutral-500">
+                        Qualificação
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {qsa.slice(0, 20).map((s, i) => (
-                      <tr key={i} className="border-b border-gray-100">
-                        <td className="py-2 px-3">{String(s.nome_socio ?? '—')}</td>
-                        <td className="py-2 px-3">{String(s.qualificacao_socio ?? '—')}</td>
+                      <tr key={i} className="border-b border-neutral-100 last:border-0">
+                        <td className="py-2 px-3 text-neutral-800">
+                          {String(s.nome_socio ?? '—')}
+                        </td>
+                        <td className="py-2 px-3 text-neutral-600">
+                          {String(s.qualificacao_socio ?? '—')}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {qsa.length > 20 && <p className="text-xs text-gray-500 p-2">Mostrando 20 de {qsa.length} sócios</p>}
+                {qsa.length > 20 && (
+                  <p className="text-[11px] text-neutral-500 px-3 py-2">
+                    Mostrando 20 de {qsa.length} sócios.
+                  </p>
+                )}
               </div>
             </div>
           )}
         </div>
       )}
+    </div>
+  );
+}
 
-      <div className="flex justify-between items-center gap-2 pt-4 border-t border-gray-200 flex-wrap">
-        <Button variant="outline" size="sm" onClick={onReverify} disabled={isVerifying}>
-          <RefreshCw className={`w-4 h-4 mr-1 ${isVerifying ? 'animate-spin' : ''}`} />
-          Reverificar
-        </Button>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onClose}>
-            Fechar
-          </Button>
-          {company.approvalStatus !== 'approved' && (
-            <Button variant="success" onClick={onApprove} disabled={isUpdating}>
-              <Check className="w-4 h-4 mr-1" />
-              Aprovar e gerar cobrança
-            </Button>
-          )}
-          {company.approvalStatus !== 'rejected' && (
-            <Button variant="outline" onClick={onReject} disabled={isUpdating}>
-              <X className="w-4 h-4 mr-1" />
-              Rejeitar
-            </Button>
-          )}
-        </div>
-      </div>
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <dt className="text-xs text-neutral-500 min-w-[120px]">{label}</dt>
+      <dd className="text-sm text-neutral-700 break-words">{value}</dd>
     </div>
   );
 }
@@ -203,13 +271,18 @@ export default function CompaniesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [planFilter, setPlanFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState<'approved' | 'not-approved' | 'all'>('not-approved');
+  const [activeTab, setActiveTab] = useState<Tab>('not-approved');
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [newPlan, setNewPlan] = useState('');
   const [saving, setSaving] = useState(false);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
-  const [verificationModal, setVerificationModal] = useState<{ company: Company; payload: Record<string, unknown> | null } | null>(null);
+  const [dueDiligenceUpdatingId, setDueDiligenceUpdatingId] = useState<string | null>(null);
+  const [serasaUpdatingId, setSerasaUpdatingId] = useState<string | null>(null);
+  const [verificationModal, setVerificationModal] = useState<{
+    company: Company;
+    payload: Record<string, unknown> | null;
+  } | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/plans')
@@ -244,25 +317,11 @@ export default function CompaniesPage() {
         ? companies.filter((c) => c.approvalStatus === 'approved')
         : companies;
 
-  const getTypeBadge = (type: string) => {
-    const types: Record<string, { label: string; class: string }> = {
-      buyer: { label: 'Comprador', class: 'badge-info' },
-      seller: { label: 'Vendedor', class: 'badge-secondary' },
-      both: { label: 'Ambos', class: 'badge-warning' },
-    };
-    const t = types[type] || types.buyer;
-    return <span className={`badge ${t.class}`}>{t.label}</span>;
-  };
-
-  const getVerificationBadge = (status: string) => {
-    const map: Record<string, { label: string; class: string }> = {
-      pending: { label: 'Em análise', class: 'badge-warning' },
-      approved: { label: 'Aprovado', class: 'badge-success' },
-      rejected: { label: 'Rejeitado', class: 'badge-danger' },
-    };
-    const t = map[status] || map.pending;
-    return <span className={`badge ${t.class}`}>{t.label}</span>;
-  };
+  const tabsCounts = useMemo(() => {
+    const pendentes = companies.filter((c) => c.approvalStatus !== 'approved').length;
+    const aprovadas = companies.filter((c) => c.approvalStatus === 'approved').length;
+    return { pendentes, aprovadas, total: companies.length };
+  }, [companies]);
 
   const handleSetVerification = (companyId: string, status: 'approved' | 'rejected') => {
     setStatusUpdatingId(companyId);
@@ -314,7 +373,6 @@ export default function CompaniesPage() {
           (liveData && typeof liveData === 'object'
             ? (liveData as Record<string, unknown>)
             : null) || dbPayload;
-
         setVerificationModal({
           company: dbData
             ? {
@@ -330,11 +388,33 @@ export default function CompaniesPage() {
         });
       })
       .catch(() => {
-        setVerificationModal({
-          company,
-          payload: null,
-        });
+        setVerificationModal({ company, payload: null });
       });
+  };
+
+  const handleRunDueDiligence = (companyId: string) => {
+    setDueDiligenceUpdatingId(companyId);
+    fetch(`/api/admin/companies/${companyId}/due-diligence`, { method: 'POST' })
+      .then((res) => (res.ok ? undefined : res.json().then((e) => Promise.reject(e))))
+      .then(() => loadCompanies())
+      .catch((e) => window.alert(e?.error || 'Falha ao executar due diligence.'))
+      .finally(() => setDueDiligenceUpdatingId(null));
+  };
+
+  const handleRunSerasa = (companyId: string) => {
+    setSerasaUpdatingId(companyId);
+    fetch(`/api/admin/companies/${companyId}/serasa`, { method: 'POST' })
+      .then((res) => (res.ok ? res.json() : res.json().then((e) => Promise.reject(e))))
+      .then((data) => {
+        loadCompanies();
+        window.alert(
+          `Consulta Serasa concluída. Score: ${data?.score ?? 'N/A'} · Risco: ${
+            data?.riskLevel ?? 'unknown'
+          }`
+        );
+      })
+      .catch((e) => window.alert(e?.error || 'Falha ao consultar Serasa.'))
+      .finally(() => setSerasaUpdatingId(null));
   };
 
   const handleOpenEdit = (company: Company) => {
@@ -362,192 +442,310 @@ export default function CompaniesPage() {
       .finally(() => setSaving(false));
   };
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Header userType="admin" userName="Admin" />
-
-      <main className="flex-grow py-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Empresas</h1>
-            <p className="text-gray-600 mt-1">Gerencie todas as empresas cadastradas</p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div className="flex border-b border-gray-200 -mb-px">
-              <button
-                type="button"
-                onClick={() => setActiveTab('not-approved')}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'not-approved'
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Pendentes
-                <span className="ml-2 text-xs bg-gray-200 text-gray-600 rounded-full px-2 py-0.5">
-                  {companies.filter((c) => c.approvalStatus !== 'approved').length}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('approved')}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'approved'
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Aprovadas
-                <span className="ml-2 text-xs bg-gray-200 text-gray-600 rounded-full px-2 py-0.5">
-                  {companies.filter((c) => c.approvalStatus === 'approved').length}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('all')}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'all'
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Todas
-              </button>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 min-w-[160px] max-w-xs">
-                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Buscar nome ou CNPJ"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 py-1.5 text-sm"
-                />
-              </div>
-              <select
-                className="input py-1.5 text-sm w-auto"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-              >
-                <option value="all">Tipo</option>
-                <option value="buyer">Comprador</option>
-                <option value="seller">Vendedor</option>
-                <option value="both">Ambos</option>
-              </select>
-              <select
-                className="input py-1.5 text-sm w-auto"
-                value={planFilter}
-                onChange={(e) => setPlanFilter(e.target.value)}
-              >
-                <option value="all">Plano</option>
-                {planOptions.map((p) => (
-                  <option key={p.slug} value={p.slug}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <Card>
-            {loading ? (
-              <p className="py-8 text-center text-gray-600">Carregando...</p>
-            ) : filteredCompanies.length === 0 ? (
-              <p className="py-8 text-center text-gray-500">Nenhuma empresa encontrada.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Empresa</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">CNPJ</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Tipo</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Status</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Plano</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-900">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCompanies.map((company) => (
-                      <tr key={company.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4">
-                          <div className="font-medium text-gray-900">{company.name}</div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(company.createdAt).toLocaleDateString('pt-BR')}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">{company.cnpj || '—'}</td>
-                        <td className="py-3 px-4">{getTypeBadge(company.type)}</td>
-                        <td className="py-3 px-4">{getVerificationBadge(company.approvalStatus)}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700">{company.planName}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleOpenVerification(company)}
-                              title="Relatório de verificação CNPJ"
-                            >
-                              <FileText className="w-4 h-4 mr-1" />
-                              Relatório
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleOpenEdit(company)}>
-                              <Edit className="w-4 h-4 mr-1" />
-                              Plano
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
+  const columns: DataTableColumn<Company>[] = [
+    {
+      key: 'name',
+      header: 'Empresa',
+      render: (row) => (
+        <div className="min-w-0">
+          <p className="font-medium text-neutral-900 truncate">{row.name}</p>
+          <p className="text-[11px] text-neutral-500 font-mono">{formatCnpj(row.cnpj)}</p>
         </div>
-      </main>
+      ),
+    },
+    {
+      key: 'type',
+      header: 'Tipo',
+      render: (row) => (
+        <Badge tone={typeBadgeTone[row.type] ?? 'neutral'}>
+          {typeLabel[row.type] ?? row.type}
+        </Badge>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (row) => (
+        <Badge tone={approvalTone[row.approvalStatus] ?? 'warning'}>
+          {approvalLabel[row.approvalStatus] ?? 'Em análise'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'risk',
+      header: 'Risco',
+      render: (row) => (
+        <div className="flex flex-col gap-0.5">
+          <Badge tone={riskTone[row.riskLevel] ?? 'neutral'}>
+            {riskLabel[row.riskLevel] ?? '—'}
+          </Badge>
+          <span className="text-[11px] text-neutral-500 tabular-nums">
+            Score {row.serasaScore ?? '—'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'plan',
+      header: 'Plano',
+      render: (row) => <span className="text-sm text-neutral-700">{row.planName}</span>,
+    },
+    {
+      key: 'createdAt',
+      header: 'Cadastro',
+      align: 'right',
+      render: (row) => (
+        <span className="text-xs text-neutral-500 tabular-nums">
+          {formatDate(row.createdAt)}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: <span className="sr-only">Ações</span>,
+      align: 'right',
+      width: '64px',
+      render: (row) => {
+        const items: ActionMenuItem[] = [
+          {
+            id: 'report',
+            label: 'Relatório de verificação',
+            icon: <FileText className="w-4 h-4" />,
+            onClick: () => handleOpenVerification(row),
+          },
+          {
+            id: 'plan',
+            label: 'Alterar plano',
+            icon: <Edit className="w-4 h-4" />,
+            onClick: () => handleOpenEdit(row),
+          },
+          {
+            id: 'verify',
+            label: verifyingId === row.id ? 'Verificando...' : 'Reverificar CNPJ',
+            icon: (
+              <RefreshCw
+                className={`w-4 h-4 ${verifyingId === row.id ? 'animate-spin' : ''}`}
+              />
+            ),
+            onClick: () => handleReverify(row.id),
+            disabled: verifyingId === row.id,
+          },
+          {
+            id: 'due',
+            label: dueDiligenceUpdatingId === row.id ? 'Executando...' : 'Due diligence',
+            icon: <ShieldCheck className="w-4 h-4" />,
+            onClick: () => handleRunDueDiligence(row.id),
+            disabled: dueDiligenceUpdatingId === row.id,
+          },
+          {
+            id: 'serasa',
+            label: serasaUpdatingId === row.id ? 'Consultando...' : 'Consultar Serasa',
+            icon: <Activity className="w-4 h-4" />,
+            onClick: () => handleRunSerasa(row.id),
+            disabled: serasaUpdatingId === row.id,
+          },
+          ...(row.approvalStatus !== 'approved'
+            ? [
+                {
+                  id: 'approve',
+                  label: 'Aprovar',
+                  icon: <Check className="w-4 h-4" />,
+                  onClick: () => handleSetVerification(row.id, 'approved'),
+                } as ActionMenuItem,
+              ]
+            : []),
+          ...(row.approvalStatus !== 'rejected'
+            ? [
+                {
+                  id: 'reject',
+                  label: 'Rejeitar',
+                  icon: <X className="w-4 h-4" />,
+                  danger: true,
+                  onClick: () => handleSetVerification(row.id, 'rejected'),
+                } as ActionMenuItem,
+              ]
+            : []),
+        ];
+        return <ActionMenu items={items} />;
+      },
+    },
+  ];
 
+  return (
+    <>
+      <PageHeader
+        title="Empresas"
+        description="Aprove, monitore e audite as empresas cadastradas na plataforma."
+      />
+
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <Tabs<Tab>
+          items={[
+            { id: 'not-approved', label: 'Pendentes', count: tabsCounts.pendentes },
+            { id: 'approved', label: 'Aprovadas', count: tabsCounts.aprovadas },
+            { id: 'all', label: 'Todas', count: tabsCounts.total },
+          ]}
+          value={activeTab}
+          onChange={setActiveTab}
+        />
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="w-full sm:w-72">
+            <Input
+              placeholder="Buscar por nome ou CNPJ"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              icon={<Search className="w-4 h-4" />}
+              inputSize="sm"
+            />
+          </div>
+          <select
+            className="input h-8 w-auto text-sm"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            aria-label="Filtrar por tipo"
+          >
+            <option value="all">Todos os tipos</option>
+            <option value="buyer">Comprador</option>
+            <option value="seller">Vendedor</option>
+            <option value="both">Ambos</option>
+          </select>
+          <select
+            className="input h-8 w-auto text-sm"
+            value={planFilter}
+            onChange={(e) => setPlanFilter(e.target.value)}
+            aria-label="Filtrar por plano"
+          >
+            <option value="all">Todos os planos</option>
+            {planOptions.map((p) => (
+              <option key={p.slug} value={p.slug}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <DataTable
+        columns={columns}
+        rows={filteredCompanies}
+        rowKey={(r) => r.id}
+        loading={loading}
+        loadingRows={6}
+        emptyTitle="Nenhuma empresa encontrada"
+        emptyDescription="Ajuste os filtros ou aguarde novos cadastros."
+      />
+
+      {/* Modal de verificação */}
       <Modal
         isOpen={!!verificationModal}
         onClose={() => setVerificationModal(null)}
-        title="Dados da verificação de CNPJ"
-        size="lg"
+        title="Relatório de verificação de CNPJ"
+        description="Dados consultados via BrasilAPI / Receita Federal."
+        size="xl"
+        footer={
+          verificationModal ? (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={
+                  <RefreshCw
+                    className={`w-4 h-4 ${
+                      verifyingId === verificationModal.company.id ? 'animate-spin' : ''
+                    }`}
+                  />
+                }
+                onClick={() => handleReverify(verificationModal.company.id)}
+                disabled={verifyingId === verificationModal.company.id}
+              >
+                Reverificar
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" onClick={() => setVerificationModal(null)}>
+                  Fechar
+                </Button>
+                {verificationModal.company.approvalStatus !== 'rejected' && (
+                  <Button
+                    variant="ghost"
+                    leftIcon={<X className="w-4 h-4" />}
+                    onClick={() => {
+                      handleSetVerification(verificationModal.company.id, 'rejected');
+                      setVerificationModal(null);
+                    }}
+                    disabled={statusUpdatingId === verificationModal.company.id}
+                  >
+                    Rejeitar
+                  </Button>
+                )}
+                {verificationModal.company.approvalStatus !== 'approved' && (
+                  <Button
+                    variant="success"
+                    leftIcon={<Check className="w-4 h-4" />}
+                    onClick={() => {
+                      handleSetVerification(verificationModal.company.id, 'approved');
+                      setVerificationModal(null);
+                    }}
+                    disabled={statusUpdatingId === verificationModal.company.id}
+                  >
+                    Aprovar e gerar cobrança
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : null
+        }
       >
         {verificationModal && (
           <VerificationDetailContent
             company={verificationModal.company}
             payload={verificationModal.payload}
-            onClose={() => setVerificationModal(null)}
-            onApprove={() => {
-              handleSetVerification(verificationModal.company.id, 'approved');
-              setVerificationModal(null);
-            }}
-            onReject={() => {
-              handleSetVerification(verificationModal.company.id, 'rejected');
-              setVerificationModal(null);
-            }}
-            onReverify={() => handleReverify(verificationModal.company.id)}
-            isUpdating={statusUpdatingId === verificationModal.company.id}
-            isVerifying={verifyingId === verificationModal.company.id}
           />
         )}
       </Modal>
 
+      {/* Modal alterar plano */}
       <Modal
         isOpen={!!editingCompany}
         onClose={() => setEditingCompany(null)}
         title="Alterar plano da empresa"
+        size="sm"
+        footer={
+          editingCompany ? (
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setEditingCompany(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSavePlan}
+                isLoading={saving}
+                disabled={saving || newPlan === editingCompany.plan}
+              >
+                Salvar
+              </Button>
+            </div>
+          ) : null
+        }
       >
         {editingCompany && (
           <div className="space-y-4">
-            <p className="text-gray-600">
-              Empresa: <strong>{editingCompany.name}</strong>. Plano atual: {editingCompany.planName}.
-            </p>
-            <label className="block">
-              <span className="text-sm font-medium text-gray-700">Novo plano</span>
+            <div className="surface card-padding-sm">
+              <p className="text-xs uppercase tracking-wider font-medium text-neutral-500">
+                Empresa
+              </p>
+              <p className="mt-1 text-sm font-medium text-neutral-900">
+                {editingCompany.name}
+              </p>
+              <p className="mt-0.5 text-xs text-neutral-500">
+                Plano atual: <span className="font-medium">{editingCompany.planName}</span>
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+                Novo plano
+              </label>
               <select
-                className="input mt-1 w-full"
+                className="input"
                 value={newPlan}
                 onChange={(e) => setNewPlan(e.target.value)}
               >
@@ -557,20 +755,10 @@ export default function CompaniesPage() {
                   </option>
                 ))}
               </select>
-            </label>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setEditingCompany(null)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleSavePlan} disabled={saving || newPlan === editingCompany.plan}>
-                {saving ? 'Salvando...' : 'Salvar'}
-              </Button>
             </div>
           </div>
         )}
       </Modal>
-
-      <Footer />
-    </div>
+    </>
   );
 }
