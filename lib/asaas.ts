@@ -33,33 +33,63 @@ export class AsaasError extends Error {
   }
 }
 
+export type AsaasRequestOptions = {
+  timeoutMs?: number;
+};
+
+function formatAsaasErrorMessage(status: number, data: unknown): string {
+  const errors = (data as { errors?: Array<{ code?: string; description?: string }> })?.errors;
+  const first = errors?.[0]?.description || errors?.[0]?.code;
+  if (first) return String(first);
+  if (status === 401) return 'Chave ASAAS_API_KEY inválida.';
+  if (status === 403) {
+    return 'Conta Asaas sem permissão para esta operação (ex.: consulta Serasa Experian). Contacte o gerente Asaas.';
+  }
+  if (status === 400) return 'Pedido inválido para a API Asaas.';
+  return 'Erro na API Asaas.';
+}
+
 async function asaasRequest<T>(
   path: string,
-  init?: RequestInit
+  init?: RequestInit,
+  options?: AsaasRequestOptions
 ): Promise<T> {
   const url = `${asaasBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`;
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      accept: 'application/json',
-      access_token: asaasApiKey(),
-      ...(init?.headers || {}),
-    },
-    cache: 'no-store',
-  });
+  const timeoutMs = options?.timeoutMs ?? 30_000;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    throw new AsaasError(
-      (data && typeof data === 'object' && 'errors' in (data as any))
-        ? 'Erro na API Asaas.'
-        : 'Erro ao chamar Asaas.',
-      res.status,
-      data
-    );
+  try {
+    const res = await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        accept: 'application/json',
+        access_token: asaasApiKey(),
+        ...(init?.headers || {}),
+      },
+      cache: 'no-store',
+    });
+
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new AsaasError(formatAsaasErrorMessage(res.status, data), res.status, data);
+    }
+    return data as T;
+  } catch (e) {
+    if (e instanceof AsaasError) throw e;
+    if ((e as Error)?.name === 'AbortError') {
+      throw new AsaasError(`Tempo esgotado (${Math.round(timeoutMs / 1000)}s) ao contactar Asaas.`, 408);
+    }
+    throw new AsaasError('Falha de comunicação com Asaas.', 503, e);
+  } finally {
+    clearTimeout(timeout);
   }
-  return data as T;
+}
+
+export function isAsaasConfigured(): boolean {
+  return Boolean((process.env.ASAAS_API_KEY || '').trim());
 }
 
 export type AsaasCustomerCreateInput = {
@@ -168,5 +198,46 @@ export async function asaasListSubscriptionPayments(subscriptionId: string): Pro
   return asaasRequest<{ data: AsaasPayment[] }>(`/subscriptions/${subscriptionId}/payments`, {
     method: 'GET',
   });
+}
+
+/** Consulta Serasa Experian via Asaas (custo debitado na conta Asaas). */
+export type AsaasCreditBureauReport = {
+  id: string;
+  dateCreated?: string;
+  cpfCnpj?: string;
+  customer?: string;
+  downloadUrl?: string;
+  reportFile?: string;
+};
+
+export type AsaasCreditBureauReportCreateInput = {
+  cpfCnpj?: string;
+  customer?: string;
+};
+
+const CREDIT_BUREAU_TIMEOUT_MS = 45_000;
+
+export async function asaasCreateCreditBureauReport(
+  input: AsaasCreditBureauReportCreateInput
+): Promise<AsaasCreditBureauReport> {
+  if (!input.cpfCnpj && !input.customer) {
+    throw new AsaasError('Informe cpfCnpj ou customer para consulta Serasa.', 400);
+  }
+  return asaasRequest<AsaasCreditBureauReport>(
+    '/creditBureauReport',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+    { timeoutMs: CREDIT_BUREAU_TIMEOUT_MS }
+  );
+}
+
+export async function asaasGetCreditBureauReport(reportId: string): Promise<AsaasCreditBureauReport> {
+  return asaasRequest<AsaasCreditBureauReport>(
+    `/creditBureauReport/${encodeURIComponent(reportId)}`,
+    { method: 'GET' },
+    { timeoutMs: CREDIT_BUREAU_TIMEOUT_MS }
+  );
 }
 

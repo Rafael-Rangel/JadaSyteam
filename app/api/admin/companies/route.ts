@@ -46,29 +46,53 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
+  const companyIds = companies.map((c) => c.id);
+  const serasaReports =
+    companyIds.length > 0
+      ? await prisma.dueDiligenceReport.findMany({
+          where: { companyId: { in: companyIds }, kind: 'score', provider: 'asaas' },
+          orderBy: { createdAt: 'desc' },
+          select: { companyId: true, summary: true, createdAt: true },
+        })
+      : [];
+  const serasaByCompany = new Map<string, { downloadUrl: string | null; reportAt: string }>();
+  for (const r of serasaReports) {
+    if (serasaByCompany.has(r.companyId)) continue;
+    const summary = (r.summary as { downloadUrl?: string } | null) ?? null;
+    serasaByCompany.set(r.companyId, {
+      downloadUrl: summary?.downloadUrl ?? null,
+      reportAt: r.createdAt.toISOString(),
+    });
+  }
+
   const nameBySlug: Record<string, string> = Object.fromEntries(
     allPlans.map((p) => [p.slug, p.name])
   );
 
-  const list = companies.map((c) => ({
-    id: c.id,
-    name: c.name,
-    cnpj: c.cnpj,
-    type: c.type,
-    plan: c.plan,
-    planName: nameBySlug[c.plan] ?? getFallbackName(c.plan),
-    verificationStatus: c.verificationStatus ?? 'pending',
-    approvalStatus: c.approvalStatus ?? 'pending',
-    billingStatus: c.billingStatus ?? null,
-    riskLevel: c.riskLevel ?? 'unknown',
-    serasaScore: c.serasaScore ?? null,
-    lastDueDiligenceAt: c.lastDueDiligenceAt?.toISOString() ?? null,
-    verifiedAt: c.verifiedAt?.toISOString() ?? null,
-    createdAt: c.createdAt,
-    usersCount: c._count.users,
-    requestsCount: c._count.requests,
-    proposalsCount: c._count.proposals,
-  }));
+  const list = companies.map((c) => {
+    const serasa = serasaByCompany.get(c.id);
+    return {
+      id: c.id,
+      name: c.name,
+      cnpj: c.cnpj,
+      type: c.type,
+      plan: c.plan,
+      planName: nameBySlug[c.plan] ?? getFallbackName(c.plan),
+      verificationStatus: c.verificationStatus ?? 'pending',
+      approvalStatus: c.approvalStatus ?? 'pending',
+      billingStatus: c.billingStatus ?? null,
+      riskLevel: c.riskLevel ?? 'unknown',
+      serasaScore: c.serasaScore ?? null,
+      serasaCheckedAt: c.serasaCheckedAt?.toISOString() ?? null,
+      serasaDownloadUrl: serasa?.downloadUrl ?? null,
+      lastDueDiligenceAt: c.lastDueDiligenceAt?.toISOString() ?? null,
+      verifiedAt: c.verifiedAt?.toISOString() ?? null,
+      createdAt: c.createdAt,
+      usersCount: c._count.users,
+      requestsCount: c._count.requests,
+      proposalsCount: c._count.proposals,
+    };
+  });
 
   return NextResponse.json(list);
 }

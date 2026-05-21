@@ -6,6 +6,10 @@ const ESCAVADOR_BASE_URL = process.env.ESCAVADOR_BASE_URL || 'https://api.escava
 const ESCAVADOR_API_TOKEN = process.env.ESCAVADOR_API_TOKEN || '';
 const ESCAVADOR_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
+export function isEscavadorConfigured(): boolean {
+  return Boolean(ESCAVADOR_API_TOKEN.trim());
+}
+
 function classifyRisk(total: number, labor: number, highValue: number): RiskLevel {
   if (highValue > 0 || labor >= 5) return 'high';
   if (total > 0 || labor > 0) return 'medium';

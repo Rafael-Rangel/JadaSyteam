@@ -33,6 +33,8 @@ type Company = {
   billingStatus: string | null;
   riskLevel: string;
   serasaScore: number | null;
+  serasaCheckedAt: string | null;
+  serasaDownloadUrl: string | null;
   lastDueDiligenceAt: string | null;
   verifiedAt: string | null;
   createdAt: string;
@@ -285,6 +287,19 @@ export default function CompaniesPage() {
     company: Company;
     payload: Record<string, unknown> | null;
   } | null>(null);
+  const [integrations, setIntegrations] = useState<{
+    asaas: { configured: boolean; serasaViaAsaas: boolean };
+    escavador: { configured: boolean };
+  } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/integrations/status')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.asaas && data?.escavador) setIntegrations(data);
+      })
+      .catch(() => setIntegrations(null));
+  }, []);
 
   useEffect(() => {
     fetch('/api/admin/plans')
@@ -406,32 +421,53 @@ export default function CompaniesPage() {
   const handleRunSerasa = (companyId: string) => {
     setSerasaUpdatingId(companyId);
     fetch(`/api/admin/companies/${companyId}/serasa`, { method: 'POST' })
-      .then((res) => (res.ok ? res.json() : res.json().then((e) => Promise.reject(e))))
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return Promise.reject(data);
+        return data;
+      })
       .then((data) => {
         loadCompanies();
-        window.alert(
-          `Consulta Serasa concluída. Score: ${data?.score ?? 'N/A'} · Risco: ${
-            data?.riskLevel ?? 'unknown'
-          }`
-        );
+        if (data?.downloadUrl) {
+          const open = window.confirm(
+            'Consulta Serasa (Asaas) concluída.\n\nO score numérico está no PDF do relatório.\nO link expira hoje às 23:59.\n\nAbrir o PDF agora?'
+          );
+          if (open) window.open(data.downloadUrl, '_blank', 'noopener,noreferrer');
+        } else {
+          window.alert(data?.reason || 'Consulta registada; sem link de PDF (verifique permissão Serasa na conta Asaas).');
+        }
       })
-      .catch((e) => window.alert(e?.error || 'Falha ao consultar Serasa.'))
+      .catch((e) =>
+        window.alert(e?.reason || e?.error || 'Falha ao consultar Serasa via Asaas.')
+      )
       .finally(() => setSerasaUpdatingId(null));
   };
 
   const handleRunEscavador = (companyId: string) => {
+    if (integrations && !integrations.escavador.configured) {
+      window.alert(
+        'Escavador não configurado. Adicione ESCAVADOR_API_TOKEN em /opt/jada/.env.production e faça deploy.'
+      );
+      return;
+    }
     setEscavadorUpdatingId(companyId);
     fetch(`/api/admin/companies/${companyId}/escavador`, { method: 'POST' })
-      .then((res) => (res.ok ? res.json() : res.json().then((e) => Promise.reject(e))))
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return Promise.reject(data);
+        return data;
+      })
       .then((data) => {
         loadCompanies();
         window.alert(
-          `Consulta Escavador concluída. Processos: ${data?.totalCases ?? '—'} · Risco: ${
-            data?.riskLevel ?? 'unknown'
-          } · Status: ${data?.status ?? '—'}`
+          data?.status === 'approved'
+            ? `Escavador: ${data.totalCases ?? 0} processo(s) · Risco ${data.riskLevel ?? '—'}`
+            : data?.reason || 'Consulta Escavador sem resultado (token ou limite).'
         );
       })
-      .catch((e) => window.alert(e?.error || 'Falha ao consultar Escavador.'))
+      .catch((e) =>
+        window.alert(e?.reason || e?.error || 'Falha ao consultar Escavador.')
+      )
       .finally(() => setEscavadorUpdatingId(null));
   };
 
@@ -497,8 +533,22 @@ export default function CompaniesPage() {
           <Badge tone={riskTone[row.riskLevel] ?? 'neutral'}>
             {riskLabel[row.riskLevel] ?? '—'}
           </Badge>
-          <span className="text-[11px] text-neutral-500 tabular-nums">
-            Score {row.serasaScore ?? '—'}
+          <span className="text-[11px] text-neutral-500">
+            {row.serasaDownloadUrl ? (
+              <a
+                href={row.serasaDownloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary-600 hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Relatório Serasa
+              </a>
+            ) : row.serasaCheckedAt ? (
+              'Serasa consultado'
+            ) : (
+              'Serasa —'
+            )}
           </span>
         </div>
       ),
@@ -557,17 +607,31 @@ export default function CompaniesPage() {
           },
           {
             id: 'serasa',
-            label: serasaUpdatingId === row.id ? 'Consultando...' : 'Consultar Serasa',
+            label:
+              serasaUpdatingId === row.id
+                ? 'Consultando...'
+                : integrations && !integrations.asaas.configured
+                  ? 'Serasa (Asaas não configurado)'
+                  : 'Consultar Serasa (Asaas)',
             icon: <Activity className="w-4 h-4" />,
             onClick: () => handleRunSerasa(row.id),
-            disabled: serasaUpdatingId === row.id,
+            disabled:
+              serasaUpdatingId === row.id ||
+              Boolean(integrations && !integrations.asaas.configured),
           },
           {
             id: 'escavador',
-            label: escavadorUpdatingId === row.id ? 'Consultando...' : 'Consultar Escavador',
+            label:
+              escavadorUpdatingId === row.id
+                ? 'Consultando...'
+                : integrations && !integrations.escavador.configured
+                  ? 'Escavador (token pendente)'
+                  : 'Consultar Escavador',
             icon: <Scale className="w-4 h-4" />,
             onClick: () => handleRunEscavador(row.id),
-            disabled: escavadorUpdatingId === row.id,
+            disabled:
+              escavadorUpdatingId === row.id ||
+              Boolean(integrations && !integrations.escavador.configured),
           },
           ...(row.approvalStatus !== 'approved'
             ? [

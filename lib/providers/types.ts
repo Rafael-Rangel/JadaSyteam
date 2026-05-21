@@ -30,11 +30,16 @@ export type JudicialResult = {
 };
 
 export type SerasaResult = {
-  provider: 'serasa';
+  provider: 'asaas';
   status: ProviderVerificationStatus;
   reason: string;
+  /** Score numérico não vem no JSON Asaas; ver PDF em downloadUrl. */
   score: number | null;
   riskLevel: RiskLevel;
   restrictions: number | null;
+  reportId?: string | null;
+  downloadUrl?: string | null;
+  dateCreated?: string | null;
+  hasReportFile?: boolean;
   raw: Record<string, unknown> | null;
 };

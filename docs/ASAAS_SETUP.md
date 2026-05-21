@@ -159,7 +159,23 @@ Checklist:
   - **Segurança (PCI):** não é permitido digitar número de cartão no seu site e enviar ao seu backend. O fluxo correto é: formulário/iframe do Asaas no front (ou checkout hospedado do Asaas) → token → seu backend envia só o token ao Asaas.
   - **Implementação:** é preciso integrar a tokenização (JS/iframe do Asaas) ou redirecionar para uma página de pagamento hospedada pelo Asaas. Por isso cartão ficou como melhoria futura (veja “Próximas melhorias” abaixo).
 
-## 9) Próximas melhorias (pós-MVP)
+## 9) Consulta Serasa Experian (due diligence manual)
+
+O painel admin usa a **mesma** `ASAAS_API_KEY` para consultar o Serasa:
+
+- **POST** `/v3/creditBureauReport` — ver [documentação Asaas](https://docs.asaas.com/reference/realizar-consulta)
+- Body: `{ "cpfCnpj": "00000000000000" }` ou `{ "customer": "cus_..." }` se a empresa já tiver `billingCustomerId`
+- Timeout recomendado: **45s** (já configurado em `lib/asaas.ts`)
+
+**Antes de usar em produção:**
+
+1. Pedir ao gerente Asaas a permissão **Consulta Serasa Experian via API**.
+2. Garantir saldo na conta (cada consulta é debitada).
+3. No admin: Empresas → menu → **Consultar Serasa (Asaas)** → abrir o PDF pelo link (válido até 23:59 do dia).
+
+Não é necessário `SERASA_CLIENT_ID` / `SERASA_CLIENT_SECRET`.
+
+## 10) Próximas melhorias (pós-MVP)
 
 - Armazenar o **ID do payment** atual e exibir histórico de cobranças.
 - Permitir cancelamento/upgrade/downgrade com regra de negócio (pro rata).

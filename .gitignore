@@ -37,6 +37,7 @@ yarn-error.log*
 admin-credentials.txt
 credencaias.md
 credecias.md
+credencias.md
 
 # banco SQLite local (não versionar)
 dev.db

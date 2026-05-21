@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { fetchJudicialRiskByCnpj } from '@/lib/providers/escavador';
-import { fetchSerasaScoreByCnpj } from '@/lib/providers/serasa';
+import { fetchSerasaViaAsaas } from '@/lib/providers/asaasSerasa';
 import { verifyCnpjWithCnpjWs } from '@/lib/providers/cnpjws';
 import type { ProviderVerificationStatus, RiskLevel } from '@/lib/providers/types';
 
@@ -165,11 +165,11 @@ export async function runEscavadorForCompany(companyId: string) {
 export async function runSerasaForCompany(companyId: string) {
   const company = await prisma.company.findUnique({
     where: { id: companyId },
-    select: { id: true, cnpj: true },
+    select: { id: true, cnpj: true, billingCustomerId: true },
   });
   if (!company) throw new Error('Empresa não encontrada para consulta Serasa.');
 
-  const result = await fetchSerasaScoreByCnpj(company.cnpj);
+  const result = await fetchSerasaViaAsaas(company.cnpj, company.billingCustomerId);
   const currentRisk = result.riskLevel;
 
   await prisma.$transaction([
@@ -181,7 +181,10 @@ export async function runSerasaForCompany(companyId: string) {
         status: result.status,
         summary: {
           reason: result.reason,
-          restrictions: result.restrictions,
+          reportId: result.reportId ?? null,
+          downloadUrl: result.downloadUrl ?? null,
+          dateCreated: result.dateCreated ?? null,
+          hasReportFile: result.hasReportFile ?? false,
         },
         payload: (result.raw as any) ?? undefined,
         score: result.score ?? undefined,
