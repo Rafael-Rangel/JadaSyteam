@@ -16,6 +16,7 @@ import type { SidebarItem } from '@/components/ui/Sidebar';
 type SellerAppShellProps = {
   children: ReactNode;
   billingNotice?: { level: 'info' | 'warning' | 'danger'; message: string } | null;
+  assistantMode?: boolean;
 };
 
 const sellerItems: SidebarItem[] = [
@@ -28,7 +29,7 @@ const sellerItems: SidebarItem[] = [
   { href: '/seller/profile', label: 'Perfil', icon: <User className="w-[18px] h-[18px]" /> },
 ];
 
-export default function SellerAppShell({ children, billingNotice }: SellerAppShellProps) {
+export default function SellerAppShell({ children, billingNotice, assistantMode }: SellerAppShellProps) {
   return (
     <DashboardAppShell
       items={sellerItems}
@@ -37,6 +38,7 @@ export default function SellerAppShell({ children, billingNotice }: SellerAppShe
       brandHref="/seller/dashboard"
       billingNotice={billingNotice}
       subscriptionHref="/seller/subscription"
+      assistantMode={assistantMode}
     >
       {children}
     </DashboardAppShell>

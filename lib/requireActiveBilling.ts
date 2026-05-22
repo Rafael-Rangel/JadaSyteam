@@ -2,11 +2,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { resolveBillingAccess } from '@/lib/billingAccess';
+import { getEffectiveCompanyId, getSessionUser, isAssistantRole } from '@/lib/sessionContext';
+import { logAssistantAction } from '@/lib/assistantAudit';
 
 export type ActiveBillingContext = {
   companyId: string;
   companyType: string;
   companyPlan: string;
+  supportMode?: boolean;
 };
 
 export async function requireActiveBilling(): Promise<
@@ -14,12 +17,18 @@ export async function requireActiveBilling(): Promise<
   | { ok: false; status: number; error: string }
 > {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
+  const user = getSessionUser(session);
+  if (!user?.id) {
     return { ok: false, status: 401, error: 'Não autorizado' };
   }
 
+  const companyId = getEffectiveCompanyId(user);
+  if (!companyId) {
+    return { ok: false, status: 403, error: 'Selecione uma empresa cliente para continuar.' };
+  }
+
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: companyId },
     select: {
       id: true,
       type: true,
@@ -44,6 +53,27 @@ export async function requireActiveBilling(): Promise<
   });
 
   if (!access.allowBusinessActions) {
+    if (isAssistantRole(user.role)) {
+      await logAssistantAction({
+        assistantUserId: user.id,
+        companyId: company.id,
+        action: 'billing_support_bypass',
+        metadata: {
+          shellState: access.shellState,
+          billingStatus: company.billingStatus,
+          approvalStatus: company.approvalStatus,
+        },
+      });
+      return {
+        ok: true,
+        context: {
+          companyId: company.id,
+          companyType: company.type,
+          companyPlan: company.plan,
+          supportMode: true,
+        },
+      };
+    }
     return {
       ok: false,
       status: 403,

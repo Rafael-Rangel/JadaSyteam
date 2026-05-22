@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { asaasUpdateSubscription, AsaasBillingType } from '@/lib/asaas';
 import { resolveBillingAccess, isRenewalWindowOpen } from '@/lib/billingAccess';
+import { resolveTenantAccess } from '@/lib/sessionContext';
 
 function normalizeBillingType(value: unknown): AsaasBillingType | null {
   const raw = typeof value === 'string' ? value.toUpperCase() : '';
@@ -19,8 +20,9 @@ function normalizePeriod(value: unknown): 'monthly' | 'semiannually' | 'yearly' 
 
 export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const body = await request.json().catch(() => ({} as Record<string, unknown>));
@@ -31,7 +33,7 @@ export async function PATCH(request: Request) {
   const period = normalizePeriod(body.period);
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: tenant.companyId },
     select: {
       id: true,
       billingSubscriptionId: true,

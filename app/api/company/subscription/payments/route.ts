@@ -6,11 +6,13 @@ import { asaasListSubscriptionPayments } from '@/lib/asaas';
 import { getRequestRateKey, rateLimitByKey } from '@/lib/rateLimit';
 import { asaasBillingTypeLabelPt, asaasPaymentStatusLabelPt } from '@/lib/paymentLabels';
 import { withNoStore } from '@/lib/apiSecurity';
+import { resolveTenantAccess } from '@/lib/sessionContext';
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const limiter = rateLimitByKey(`sub-payments:${getRequestRateKey(request)}`, 40, 60_000);
@@ -19,7 +21,7 @@ export async function GET(request: Request) {
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: tenant.companyId },
     select: { billingSubscriptionId: true },
   });
   if (!company) {

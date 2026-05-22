@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import SellerAppShell from '@/components/app-shell/SellerAppShell';
 import { resolveBillingAccess } from '@/lib/billingAccess';
+import { resolveLayoutCompanyId } from '@/lib/layoutTenant';
+import { getSessionUser, isAssistantRole } from '@/lib/sessionContext';
 
 export default async function SellerLayout({
   children,
@@ -11,12 +13,14 @@ export default async function SellerLayout({
   children: React.ReactNode;
 }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    redirect('/login');
+  const user = getSessionUser(session);
+  const companyId = resolveLayoutCompanyId(session);
+  if (!companyId) {
+    redirect(user?.role === 'assistant' ? '/assistant' : '/login');
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: companyId },
     select: {
       approvalStatus: true,
       billingStatus: true,
@@ -34,9 +38,17 @@ export default async function SellerLayout({
     billingNextDueDate: company?.billingNextDueDate,
   });
 
-  if (access.shellState === 'awaiting' || access.shellState === 'blocked') {
+  const skipBillingRedirect = isAssistantRole(user?.role);
+  if (
+    !skipBillingRedirect &&
+    (access.shellState === 'awaiting' || access.shellState === 'blocked')
+  ) {
     redirect('/aguardando-pagamento');
   }
 
-  return <SellerAppShell billingNotice={access.billingNotice}>{children}</SellerAppShell>;
+  return (
+    <SellerAppShell billingNotice={access.billingNotice} assistantMode={skipBillingRedirect}>
+      {children}
+    </SellerAppShell>
+  );
 }

@@ -35,6 +35,7 @@ yarn-error.log*
 
 # credenciais do admin (geradas por npm run create-admin)
 admin-credentials.txt
+assistant-credentials.txt
 credencaias.md
 credecias.md
 credencias.md

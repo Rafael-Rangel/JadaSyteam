@@ -5,19 +5,22 @@ import { prisma } from '@/lib/prisma';
 import { getPlanBySlugOrFallback } from '@/lib/planService';
 import { requireActiveBilling } from '@/lib/requireActiveBilling';
 import { validateRequestAttachments } from '@/lib/requestAttachments';
+import { resolveTenantAccess, isAssistantRole } from '@/lib/sessionContext';
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
+  const companyId = tenant.companyId;
 
   const { searchParams } = new URL(request.url);
   const buyerOnly = searchParams.get('buyerOnly'); // list only my company's requests
 
   if (buyerOnly === 'true') {
     const requests = await prisma.request.findMany({
-      where: { buyerId: session.user.companyId },
+      where: { buyerId: companyId },
       orderBy: { createdAt: 'desc' },
       include: {
         _count: { select: { proposals: true } },
@@ -45,7 +48,7 @@ export async function GET(request: Request) {
     include: {
       buyer: { select: { name: true, id: true } },
       proposals: {
-        where: { sellerId: session.user.companyId },
+        where: { sellerId: companyId },
         select: { id: true },
       },
     },
@@ -80,7 +83,9 @@ export async function POST(request: Request) {
   if (!company || (company.type !== 'buyer' && company.type !== 'both')) {
     return NextResponse.json({ error: 'Empresa não é compradora' }, { status: 403 });
   }
-  if (company.verificationStatus !== 'approved') {
+  const session = await getServerSession(authOptions);
+  const isAssistant = isAssistantRole((session?.user as { role?: string })?.role);
+  if (!isAssistant && company.verificationStatus !== 'approved') {
     return NextResponse.json(
       { error: 'Sua empresa está em análise de CNPJ. Você não pode criar requisições de compra até a aprovação.' },
       { status: 403 }

@@ -3,15 +3,17 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { asaasDeleteSubscription } from '@/lib/asaas';
+import { resolveTenantAccess } from '@/lib/sessionContext';
 
 export async function POST() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: tenant.companyId },
     select: { id: true, billingSubscriptionId: true, billingStatus: true },
   });
   if (!company) {

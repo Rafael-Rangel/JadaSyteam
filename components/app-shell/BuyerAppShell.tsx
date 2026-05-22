@@ -15,6 +15,7 @@ import type { SidebarItem } from '@/components/ui/Sidebar';
 type BuyerAppShellProps = {
   children: ReactNode;
   billingNotice?: { level: 'info' | 'warning' | 'danger'; message: string } | null;
+  assistantMode?: boolean;
 };
 
 const buyerItems: SidebarItem[] = [
@@ -26,7 +27,7 @@ const buyerItems: SidebarItem[] = [
   { href: '/buyer/profile', label: 'Perfil', icon: <User className="w-[18px] h-[18px]" /> },
 ];
 
-export default function BuyerAppShell({ children, billingNotice }: BuyerAppShellProps) {
+export default function BuyerAppShell({ children, billingNotice, assistantMode }: BuyerAppShellProps) {
   return (
     <DashboardAppShell
       items={buyerItems}
@@ -35,6 +36,7 @@ export default function BuyerAppShell({ children, billingNotice }: BuyerAppShell
       brandHref="/buyer/dashboard"
       billingNotice={billingNotice}
       subscriptionHref="/buyer/subscription"
+      assistantMode={assistantMode}
     >
       {children}
     </DashboardAppShell>

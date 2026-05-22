@@ -4,15 +4,17 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getPlanBySlugOrFallback } from '@/lib/planService';
 import { resolveBillingAccess } from '@/lib/billingAccess';
+import { resolveTenantAccess } from '@/lib/sessionContext';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: tenant.companyId },
     select: {
       id: true,
       type: true,

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { asaasListSubscriptionPayments } from '@/lib/asaas';
+import { resolveTenantAccess } from '@/lib/sessionContext';
 
 /**
  * Retorna o link de pagamento atual (invoiceUrl ou bankSlipUrl) da primeira cobrança pendente da assinatura.
@@ -10,12 +11,13 @@ import { asaasListSubscriptionPayments } from '@/lib/asaas';
  */
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: tenant.companyId },
     select: {
       billingSubscriptionId: true,
       billingStatus: true,
@@ -60,7 +62,7 @@ export async function GET() {
   if ((status === 'pending' || status == null) && paid) {
     status = 'active';
     await prisma.company.update({
-      where: { id: session.user.companyId },
+      where: { id: tenant.companyId },
       data: {
         billingStatus: 'active',
         billingLastEventAt: new Date(),

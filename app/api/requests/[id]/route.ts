@@ -2,15 +2,18 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { resolveTenantAccess } from '@/lib/sessionContext';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
+  const companyId = tenant.companyId;
 
   const { id } = await params;
   const request = await prisma.request.findUnique({
@@ -29,7 +32,7 @@ export async function GET(
     return NextResponse.json({ error: 'Requisição não encontrada' }, { status: 404 });
   }
 
-  const isBuyer = request.buyerId === session.user.companyId;
+  const isBuyer = request.buyerId === companyId;
 
   if (isBuyer) {
     return NextResponse.json({
@@ -62,7 +65,7 @@ export async function GET(
   }
 
   const myProposal = await prisma.proposal.findFirst({
-    where: { requestId: id, sellerId: session.user.companyId },
+    where: { requestId: id, sellerId: companyId },
     select: { id: true, status: true },
   });
 
@@ -90,13 +93,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const { id } = await params;
   const existing = await prisma.request.findUnique({ where: { id } });
-  if (!existing || existing.buyerId !== session.user.companyId) {
+  if (!existing || existing.buyerId !== tenant.companyId) {
     return NextResponse.json({ error: 'Requisição não encontrada ou acesso negado' }, { status: 404 });
   }
 

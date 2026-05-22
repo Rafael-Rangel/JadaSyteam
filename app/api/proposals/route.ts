@@ -2,15 +2,17 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { resolveTenantAccess } from '@/lib/sessionContext';
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const proposals = await prisma.proposal.findMany({
-    where: { sellerId: session.user.companyId },
+    where: { sellerId: tenant.companyId },
     orderBy: { createdAt: 'desc' },
     include: {
       request: {

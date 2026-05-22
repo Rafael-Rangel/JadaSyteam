@@ -22,7 +22,10 @@
 - Middleware exige login para áreas protegidas.
 - Middleware exige `role=admin` para `/admin/*`.
 - APIs administrativas validam `role=admin` server-side.
-- APIs de tenant exigem `session.user.companyId`.
+- APIs de tenant resolvem empresa efetiva via `lib/sessionContext.ts` (`getEffectiveCompanyId` / `resolveTenantAccess`).
+- Papel `assistant` (funcionário JADA): atua em empresas atribuídas (`AssistantCompanyAssignment`); JWT inclui `actingCompanyId` após `POST /api/assistant/context`.
+- Assistente bloqueado em `/admin/*` e `api/admin/*`; dados sensíveis (CNPJ integral, due diligence, payloads) redigidos em `lib/redactCompanyForAssistant.ts`.
+- Modo suporte: assistente ignora bloqueio de billing do cliente com registro em `AssistantAuditLog` (`billing_support_bypass`).
 - Regras por tipo de empresa (`buyer/seller/both`) em endpoints de negócio.
 
 ## Segurança de integração Asaas

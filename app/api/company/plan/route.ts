@@ -6,11 +6,19 @@ import { getPlanBySlugOrFallback, planSlugExistsAndActive } from '@/lib/planServ
 import { asaasUpdateSubscription } from '@/lib/asaas';
 import { cycleFromPeriod } from '@/lib/asaasBilling';
 import { resolveBillingAccess, isRenewalWindowOpen } from '@/lib/billingAccess';
+import { resolveTenantAccess, isAssistantRole } from '@/lib/sessionContext';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
+  }
+  if (isAssistantRole(tenant.user.role)) {
+    return NextResponse.json(
+      { error: 'Assistentes não podem alterar o plano da empresa. Contate o administrador JADA.' },
+      { status: 403 }
+    );
   }
 
   const body = await request.json().catch(() => ({} as Record<string, unknown>));
@@ -25,7 +33,7 @@ export async function POST(request: Request) {
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: tenant.companyId },
     select: {
       id: true,
       plan: true,

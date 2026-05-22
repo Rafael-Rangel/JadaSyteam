@@ -8,6 +8,7 @@ import {
   Receipt,
   CreditCard,
   UserCog,
+  Users,
   LogOut,
   Menu,
 } from 'lucide-react';
@@ -17,6 +18,7 @@ import { ToastProvider } from '@/components/ui/Toast';
 const adminItems: SidebarItem[] = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-[18px] h-[18px]" /> },
   { href: '/admin/companies', label: 'Empresas', icon: <Building2 className="w-[18px] h-[18px]" /> },
+  { href: '/admin/users', label: 'Equipe JADA', icon: <Users className="w-[18px] h-[18px]" /> },
   { href: '/admin/plans', label: 'Planos', icon: <CreditCard className="w-[18px] h-[18px]" /> },
   { href: '/admin/financial', label: 'Financeiro', icon: <Receipt className="w-[18px] h-[18px]" /> },
   { href: '/admin/profile', label: 'Perfil', icon: <UserCog className="w-[18px] h-[18px]" /> },

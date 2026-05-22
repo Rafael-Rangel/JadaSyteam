@@ -14,13 +14,46 @@ export const authOptions: NextAuthOptions = {
     updateAge: 60 * 60, // renew every hour
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.companyId = (user as { companyId?: string }).companyId;
         token.role = (user as { role?: string }).role;
         token.companyType = (user as { companyType?: string }).companyType;
+        token.restrictToAssignedCompanies = (
+          user as { restrictToAssignedCompanies?: boolean }
+        ).restrictToAssignedCompanies;
+        if ((user as { role?: string }).role === 'assistant') {
+          token.actingCompanyId = null;
+          token.actingCompanyType = null;
+        }
       }
+
+      if (trigger === 'update' && session) {
+        const s = session as {
+          actingCompanyId?: string | null;
+          actingCompanyType?: string | null;
+        };
+        if (token.role === 'assistant') {
+          if (s.actingCompanyId === null) {
+            token.actingCompanyId = null;
+            token.actingCompanyType = null;
+          } else if (typeof s.actingCompanyId === 'string' && token.id) {
+            const { assertAssistantCanAccessCompany } = await import('@/lib/sessionContext');
+            const access = await assertAssistantCanAccessCompany({
+              assistantUserId: token.id as string,
+              companyId: s.actingCompanyId,
+              restrictToAssignedCompanies: token.restrictToAssignedCompanies !== false,
+            });
+            if (access.ok) {
+              token.actingCompanyId = s.actingCompanyId;
+              token.actingCompanyType =
+                typeof s.actingCompanyType === 'string' ? s.actingCompanyType : null;
+            }
+          }
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -29,6 +62,12 @@ export const authOptions: NextAuthOptions = {
         (session.user as { companyId?: string }).companyId = token.companyId as string;
         (session.user as { role?: string }).role = token.role as string;
         (session.user as { companyType?: string }).companyType = token.companyType as string;
+        (session.user as { restrictToAssignedCompanies?: boolean }).restrictToAssignedCompanies =
+          token.restrictToAssignedCompanies as boolean;
+        (session.user as { actingCompanyId?: string | null }).actingCompanyId =
+          (token.actingCompanyId as string | null) ?? null;
+        (session.user as { actingCompanyType?: string | null }).actingCompanyType =
+          (token.actingCompanyType as string | null) ?? null;
       }
       return session;
     },
@@ -58,6 +97,7 @@ export const authOptions: NextAuthOptions = {
           companyId: user.companyId,
           role: user.role,
           companyType: user.company.type,
+          restrictToAssignedCompanies: user.restrictToAssignedCompanies,
         };
       },
     }),

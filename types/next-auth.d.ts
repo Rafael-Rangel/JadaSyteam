@@ -7,6 +7,9 @@ declare module 'next-auth' {
     companyId?: string;
     role?: string;
     companyType?: string;
+    restrictToAssignedCompanies?: boolean;
+    actingCompanyId?: string | null;
+    actingCompanyType?: string | null;
   }
 
   interface Session {
@@ -15,6 +18,9 @@ declare module 'next-auth' {
       companyId?: string;
       role?: string;
       companyType?: string;
+      restrictToAssignedCompanies?: boolean;
+      actingCompanyId?: string | null;
+      actingCompanyType?: string | null;
     };
   }
 }
@@ -25,5 +31,8 @@ declare module 'next-auth/jwt' {
     companyId?: string;
     role?: string;
     companyType?: string;
+    restrictToAssignedCompanies?: boolean;
+    actingCompanyId?: string | null;
+    actingCompanyType?: string | null;
   }
 }

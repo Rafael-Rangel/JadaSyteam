@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getPlanBySlugOrFallback } from '@/lib/planService';
 import { requireActiveBilling } from '@/lib/requireActiveBilling';
+import { isAssistantRole } from '@/lib/sessionContext';
 
 export async function POST(request: Request) {
   const access = await requireActiveBilling();
@@ -15,7 +18,9 @@ export async function POST(request: Request) {
   if (!company || (company.type !== 'seller' && company.type !== 'both')) {
     return NextResponse.json({ error: 'Empresa não é vendedora' }, { status: 403 });
   }
-  if (company.verificationStatus !== 'approved') {
+  const session = await getServerSession(authOptions);
+  const isAssistant = isAssistantRole((session?.user as { role?: string })?.role);
+  if (!isAssistant && company.verificationStatus !== 'approved') {
     return NextResponse.json(
       { error: 'Sua empresa está em análise de CNPJ. Você não pode enviar propostas até a aprovação.' },
       { status: 403 }

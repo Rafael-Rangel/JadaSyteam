@@ -60,6 +60,8 @@ export default function LoginPage() {
       const companyType = (session?.user as { companyType?: string })?.companyType;
       if (role === 'admin') {
         router.push('/admin/dashboard');
+      } else if (role === 'assistant') {
+        router.push('/assistant');
       } else if (companyType === 'seller') {
         router.push('/seller/dashboard');
       } else {

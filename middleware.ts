@@ -2,25 +2,52 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+type AuthToken = {
+  role?: string;
+  actingCompanyId?: string | null;
+};
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const token = await getToken({
+  const token = (await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
-  });
+  })) as AuthToken | null;
 
-  // Rotas protegidas: exige login
   if (!token) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  // /admin: só role admin pode acessar
+  const role = token.role;
+
   if (pathname.startsWith('/admin')) {
-    const role = (token as { role?: string }).role;
     if (role !== 'admin') {
-      const dashboard = new URL('/buyer/dashboard', request.url);
-      return NextResponse.redirect(dashboard);
+      const dest =
+        role === 'assistant' ? '/assistant' : new URL('/buyer/dashboard', request.url);
+      return NextResponse.redirect(dest);
+    }
+  }
+
+  if (pathname.startsWith('/assistant')) {
+    if (role !== 'assistant') {
+      if (role === 'admin') {
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      }
+      return NextResponse.redirect(new URL('/buyer/dashboard', request.url));
+    }
+  }
+
+  if (role === 'assistant') {
+    const acting = token.actingCompanyId;
+    if (
+      (pathname.startsWith('/buyer') || pathname.startsWith('/seller')) &&
+      !acting
+    ) {
+      return NextResponse.redirect(new URL('/assistant', request.url));
+    }
+    if (pathname.startsWith('/aguardando-pagamento')) {
+      return NextResponse.redirect(new URL('/assistant', request.url));
     }
   }
 
@@ -31,5 +58,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/buyer/:path*', '/seller/:path*', '/admin/:path*', '/aguardando-pagamento'],
+  matcher: [
+    '/buyer/:path*',
+    '/seller/:path*',
+    '/admin/:path*',
+    '/assistant/:path*',
+    '/aguardando-pagamento',
+  ],
 };

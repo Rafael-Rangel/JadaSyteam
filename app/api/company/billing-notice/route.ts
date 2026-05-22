@@ -5,11 +5,13 @@ import { prisma } from '@/lib/prisma';
 import { resolveBillingAccess } from '@/lib/billingAccess';
 import { getRequestRateKey, rateLimitByKey } from '@/lib/rateLimit';
 import { withNoStore } from '@/lib/apiSecurity';
+import { resolveTenantAccess } from '@/lib/sessionContext';
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const limiter = rateLimitByKey(`billing-notice:${getRequestRateKey(request)}`, 60, 60_000);
@@ -18,7 +20,7 @@ export async function GET(request: Request) {
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: tenant.companyId },
     select: {
       approvalStatus: true,
       billingStatus: true,

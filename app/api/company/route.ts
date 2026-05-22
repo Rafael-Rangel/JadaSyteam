@@ -4,17 +4,21 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { normalizeCnpj, isValidCnpjFormat, verifyCnpjWithBrasilApi } from '@/lib/cnpjVerification';
 import { enforceSameOrigin, withNoStore } from '@/lib/apiSecurity';
+import { resolveTenantAccess, isAssistantRole } from '@/lib/sessionContext';
+import { redactCompanyForAssistant, shouldRedactForSession } from '@/lib/redactCompanyForAssistant';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: tenant.companyId },
     include: {
       users: {
+        where: { deletedAt: null },
         select: { id: true, name: true, email: true, phone: true, role: true, createdAt: true },
       },
     },
@@ -47,7 +51,11 @@ export async function GET() {
     res.sellerReceiveAll = company.sellerReceiveAll ?? false;
     res.sellerCategories = company.sellerCategories ? JSON.parse(company.sellerCategories) : [];
   }
-  return withNoStore(NextResponse.json(res));
+
+  const payload = shouldRedactForSession(tenant.user.role)
+    ? redactCompanyForAssistant(res)
+    : res;
+  return withNoStore(NextResponse.json(payload));
 }
 
 export async function PATCH(request: Request) {
@@ -55,8 +63,9 @@ export async function PATCH(request: Request) {
   if (sameOriginError) return sameOriginError;
 
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   try {
@@ -73,6 +82,9 @@ export async function PATCH(request: Request) {
       'role',
       'companyId',
     ]);
+    if (isAssistantRole(tenant.user.role)) {
+      protectedKeys.add('cnpj');
+    }
     const attemptedProtected = Object.keys(body || {}).filter((k) => protectedKeys.has(k));
     if (attemptedProtected.length > 0) {
       return NextResponse.json(
@@ -83,8 +95,8 @@ export async function PATCH(request: Request) {
     const { name, cnpj, address, city, state, zipCode, description, ownerName, ownerPhone, sellerRadius, sellerReceiveAll, sellerCategories } = body;
 
     const company = await prisma.company.findUnique({
-      where: { id: session.user.companyId },
-      include: { users: true },
+      where: { id: tenant.companyId },
+      include: { users: { where: { deletedAt: null } } },
     });
     if (!company) {
       return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 });
@@ -92,7 +104,7 @@ export async function PATCH(request: Request) {
 
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = String(name).trim();
-    if (cnpj !== undefined) {
+    if (cnpj !== undefined && !isAssistantRole(tenant.user.role)) {
       const cnpjStr = (cnpj as string)?.trim() ?? '';
       if (!cnpjStr) {
         return NextResponse.json({ error: 'CNPJ é obrigatório.' }, { status: 400 });
@@ -121,17 +133,17 @@ export async function PATCH(request: Request) {
 
     if (Object.keys(data).length > 0) {
       const updated = await prisma.company.update({
-        where: { id: session.user.companyId },
+        where: { id: tenant.companyId },
         data,
       });
       if (data.cnpj !== undefined && data.verificationStatus === 'pending') {
         const verification = await verifyCnpjWithBrasilApi(updated.cnpj);
         await prisma.company.update({
-          where: { id: session.user.companyId },
+          where: { id: tenant.companyId },
           data: {
             verificationStatus: verification.status,
             verifiedAt: new Date(),
-            verificationPayload: (verification.raw as any) ?? undefined,
+            verificationPayload: (verification.raw as object) ?? undefined,
           },
         });
       }

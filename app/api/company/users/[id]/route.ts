@@ -2,14 +2,16 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { resolveTenantAccess } from '@/lib/sessionContext';
 
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const { id } = await params;
@@ -17,7 +19,7 @@ export async function DELETE(
     where: { id },
     select: { id: true, role: true, companyId: true, deletedAt: true },
   });
-  if (!user || user.companyId !== session.user.companyId) {
+  if (!user || user.companyId !== tenant.companyId) {
     return NextResponse.json({ error: 'Usuário não encontrado.' }, { status: 404 });
   }
   if (user.deletedAt) {

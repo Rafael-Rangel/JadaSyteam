@@ -96,8 +96,17 @@ flowchart TB
 ### 2.5 Admin
 
 - **Acesso:** apenas usuário com `role === 'admin'` (definido no banco; não há tela de cadastro de admin).
-- **Rotas:** dashboard, companies, plans, financial.
+- **Rotas:** dashboard, companies, plans, financial, users (equipe JADA).
 - **Proteção:** middleware exige login e `role === 'admin'` para `/admin/*`.
+
+### 2.6 Assistente (JADA)
+
+- **Acesso:** `role === 'assistant'`, conta na empresa sistema (CNPJ `00000000000000`).
+- **Hub:** `/assistant` — lista empresas atribuídas (ou todas, se checkbox desmarcado no cadastro).
+- **Modo cliente:** `POST /api/assistant/context` define `actingCompanyId` no JWT; navega em `/buyer/*` ou `/seller/*` com banner de modo assistente.
+- **Operacional:** requisições, propostas, equipe, perfil e assinatura do **cliente**; billing bloqueado do cliente é ignorado (auditoria).
+- **Bloqueado:** `/admin/*`, alteração de plano global da empresa (`POST /api/company/plan`), CNPJ/due diligence/Serasa admin.
+- **Gestão:** Admin > Equipe JADA (`/admin/users`) — CRUD de admins e assistentes, permissões e atribuições. Rota `/admin/assistants` redireciona para lá.
 
 ---
 

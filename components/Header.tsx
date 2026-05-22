@@ -57,6 +57,7 @@ export default function Header({ userType: propUserType = null, userName: propUs
   const adminLinks = [
     { href: '/admin/dashboard', label: 'Dashboard', icon: Settings },
     { href: '/admin/companies', label: 'Empresas', icon: Package },
+    { href: '/admin/users', label: 'Equipe JADA', icon: User },
     { href: '/admin/plans', label: 'Planos', icon: Settings },
     { href: '/admin/financial', label: 'Financeiro', icon: Settings },
   ];

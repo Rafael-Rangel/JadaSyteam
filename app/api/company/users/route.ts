@@ -4,15 +4,17 @@ import bcrypt from 'bcryptjs';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getPlanBySlugOrFallback } from '@/lib/planService';
+import { resolveTenantAccess } from '@/lib/sessionContext';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const users = await prisma.user.findMany({
-    where: { companyId: session.user.companyId, deletedAt: null },
+    where: { companyId: tenant.companyId, deletedAt: null },
     select: {
       id: true,
       name: true,
@@ -29,12 +31,13 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  const tenant = await resolveTenantAccess(session);
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error }, { status: tenant.status });
   }
 
   const company = await prisma.company.findUnique({
-    where: { id: session.user.companyId },
+    where: { id: tenant.companyId },
     include: { users: { where: { deletedAt: null } } },
   });
   if (!company) {
@@ -88,7 +91,7 @@ export async function POST(request: Request) {
         phone: (phone as string)?.trim() || null,
         password: hashedPassword,
         role: finalRole,
-        companyId: session.user.companyId,
+        companyId: tenant.companyId,
       },
     });
 

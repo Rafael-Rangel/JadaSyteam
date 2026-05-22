@@ -6,6 +6,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { LogOut, Menu } from 'lucide-react';
 import Sidebar, { SidebarItem } from '@/components/ui/Sidebar';
 import { ToastProvider } from '@/components/ui/Toast';
+import AssistantModeBanner from '@/components/AssistantModeBanner';
 
 export type DashboardAppShellProps = {
   children: ReactNode;
@@ -15,6 +16,7 @@ export type DashboardAppShellProps = {
   brandHref: string;
   billingNotice?: { level: 'info' | 'warning' | 'danger'; message: string } | null;
   subscriptionHref?: string;
+  assistantMode?: boolean;
 };
 
 export default function DashboardAppShell({
@@ -25,6 +27,7 @@ export default function DashboardAppShell({
   brandHref,
   billingNotice,
   subscriptionHref,
+  assistantMode,
 }: DashboardAppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: session } = useSession();
@@ -82,6 +85,8 @@ export default function DashboardAppShell({
               </div>
             </div>
           </header>
+
+          {assistantMode && <AssistantModeBanner />}
 
           {billingNotice && (
             <div
