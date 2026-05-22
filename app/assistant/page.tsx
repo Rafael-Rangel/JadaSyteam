@@ -104,7 +104,11 @@ export default function AssistantHubPage() {
         <p className="text-neutral-500">Carregando empresas...</p>
       ) : companies.length === 0 ? (
         <Card className="p-8 text-center text-neutral-600">
-          Nenhuma empresa disponível. Peça ao administrador JADA para atribuir clientes à sua conta.
+          <p>Nenhuma empresa disponível para você no momento.</p>
+          <p className="text-sm text-neutral-500 mt-2">
+            Se sua conta estiver limitada a empresas atribuídas, peça ao administrador JADA para vincular
+            clientes em Equipe JADA. Caso contrário, aguarde empresas aprovadas na plataforma.
+          </p>
         </Card>
       ) : (
         <ul className="space-y-3">

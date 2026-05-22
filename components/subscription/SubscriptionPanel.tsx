@@ -7,7 +7,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/ui/Badge';
 import Skeleton from '@/components/ui/Skeleton';
-import { Check, ArrowRight, ExternalLink } from 'lucide-react';
+import { Check, ArrowRight, ExternalLink, Copy, Loader2 } from 'lucide-react';
 
 type SubscriptionData = {
   plan: string;
@@ -27,6 +27,8 @@ type SubscriptionData = {
     renewalEligible?: boolean;
     allowBusinessActions?: boolean;
     graceDaysRemaining?: number | null;
+    canManageBilling?: boolean;
+    isAssistantOperator?: boolean;
   };
   limits: { users: number; requestsPerMonth: number; proposalsPerMonth?: number };
   usage: { users: number; requestsThisMonth: number; proposalsThisMonth?: number };
@@ -67,6 +69,12 @@ export default function SubscriptionPanel() {
   const [data, setData] = useState<SubscriptionData | null>(null);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paymentLink, setPaymentLink] = useState<string | null>(null);
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingMsg, setBillingMsg] = useState<string | null>(null);
+  const [billingErr, setBillingErr] = useState<string | null>(null);
+  const [methodType, setMethodType] = useState('BOLETO');
+  const [methodPeriod, setMethodPeriod] = useState('monthly');
 
   const reload = () => {
     Promise.all([
@@ -76,6 +84,10 @@ export default function SubscriptionPanel() {
       .then(([sub, pay]) => {
         setData(sub);
         setPayments(pay?.payments ?? []);
+        const pref = sub?.billing?.preferredBillingType;
+        if (pref) setMethodType(String(pref).toUpperCase());
+        const per = sub?.billing?.preferredBillingPeriod;
+        if (per) setMethodPeriod(String(per));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -84,6 +96,14 @@ export default function SubscriptionPanel() {
   useEffect(() => {
     reload();
   }, []);
+
+  useEffect(() => {
+    if (!data?.access?.canManageBilling) return;
+    fetch('/api/company/payment-link')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => setPaymentLink(json?.paymentLink ?? null))
+      .catch(() => null);
+  }, [data?.access?.canManageBilling, data?.billing?.status]);
 
   if (loading) {
     return (
@@ -119,16 +139,173 @@ export default function SubscriptionPanel() {
         : 'Pendente';
 
   const inGrace = data.access?.shellState === 'grace';
+  const canManageBilling = data.access?.canManageBilling === true;
+  const isPending =
+    data.billing?.status !== 'active' || data.access?.shellState === 'awaiting' || data.access?.shellState === 'grace';
+
+  async function copyPaymentLink() {
+    const link =
+      paymentLink ||
+      payments.find((p) => p.invoiceUrl || p.bankSlipUrl)?.invoiceUrl ||
+      payments.find((p) => p.invoiceUrl || p.bankSlipUrl)?.bankSlipUrl;
+    if (!link) {
+      setBillingErr('Nenhum link de pagamento disponível. Emita ou atualize a cobrança.');
+      return;
+    }
+    await navigator.clipboard.writeText(link);
+    setBillingMsg('Link copiado para a área de transferência.');
+    setBillingErr(null);
+  }
+
+  async function issuePayment() {
+    setBillingBusy(true);
+    setBillingMsg(null);
+    setBillingErr(null);
+    try {
+      const res = await fetch('/api/company/billing/issue-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ billingType: methodType, period: methodPeriod }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setBillingErr(json.error || 'Não foi possível emitir a cobrança.');
+        return;
+      }
+      if (json.paymentLink) setPaymentLink(json.paymentLink);
+      setBillingMsg(
+        json.alreadyExists
+          ? 'Cobrança já existente — link atualizado abaixo.'
+          : 'Cobrança emitida com sucesso.'
+      );
+      reload();
+    } catch {
+      setBillingErr('Erro de rede ao emitir cobrança.');
+    } finally {
+      setBillingBusy(false);
+    }
+  }
+
+  async function savePaymentMethod() {
+    setBillingBusy(true);
+    setBillingMsg(null);
+    setBillingErr(null);
+    try {
+      const res = await fetch('/api/company/payment-method', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ billingType: methodType, period: methodPeriod }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setBillingErr(json.error || 'Não foi possível alterar a forma de pagamento.');
+        return;
+      }
+      setBillingMsg('Forma de pagamento atualizada. Se necessário, emita a cobrança novamente.');
+      reload();
+    } catch {
+      setBillingErr('Erro de rede ao salvar forma de pagamento.');
+    } finally {
+      setBillingBusy(false);
+    }
+  }
 
   return (
     <div>
       <PageHeader title="Assinatura" description="Plano, uso e histórico de pagamentos." />
+
+      {data.access?.isAssistantOperator && (
+        <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
+          Modo suporte JADA: você pode ver o status de pagamento, emitir cobrança e alterar a forma de
+          pagamento desta empresa. As ações ficam registradas em auditoria.
+        </div>
+      )}
 
       {inGrace && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           Pagamento em tolerância: funções de negócio ficam bloqueadas até a regularização. Use os links de
           boleto ou fatura na tabela do histórico de cobranças (Asaas), quando disponíveis.
         </div>
+      )}
+
+      {canManageBilling && isPending && (
+        <Card className="mb-6 border-primary-200 bg-primary-50/40">
+          <h2 className="mb-2 text-lg font-semibold text-neutral-900">Pagamento pendente</h2>
+          <p className="mb-4 text-sm text-neutral-700">
+            Status atual: <strong>{statusLabel}</strong>. Envie o link abaixo ao cliente ou emita uma nova
+            cobrança após ajustar o método.
+          </p>
+          {paymentLink && (
+            <p className="mb-3 break-all text-sm text-neutral-800">
+              <span className="font-medium">Link:</span>{' '}
+              <a href={paymentLink} target="_blank" rel="noopener noreferrer" className="text-primary-600">
+                {paymentLink}
+              </a>
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={copyPaymentLink} disabled={billingBusy}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copiar link
+            </Button>
+            {paymentLink && (
+              <a href={paymentLink} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline">
+                  Abrir pagamento <ExternalLink className="ml-2 h-4 w-4" />
+                </Button>
+              </a>
+            )}
+            <Button onClick={issuePayment} disabled={billingBusy}>
+              {billingBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Emitir / atualizar cobrança
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {canManageBilling && (
+        <Card className="mb-6">
+          <h2 className="mb-4 text-lg font-semibold text-neutral-900">Forma de pagamento</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Método</span>
+              <select
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2"
+                value={methodType}
+                onChange={(e) => setMethodType(e.target.value)}
+              >
+                <option value="PIX">PIX</option>
+                <option value="BOLETO">Boleto</option>
+                <option value="CREDIT_CARD">Cartão (link Asaas)</option>
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Periodicidade</span>
+              <select
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2"
+                value={methodPeriod}
+                onChange={(e) => setMethodPeriod(e.target.value)}
+              >
+                <option value="monthly">Mensal</option>
+                <option value="semiannually">Semestral</option>
+                <option value="yearly">Anual</option>
+              </select>
+            </label>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="outline" onClick={savePaymentMethod} disabled={billingBusy}>
+              Salvar forma de pagamento
+            </Button>
+          </div>
+          {(billingMsg || billingErr) && (
+            <p
+              className={`mt-3 text-sm ${billingErr ? 'text-red-700' : 'text-emerald-800'}`}
+              role="status"
+            >
+              {billingErr || billingMsg}
+            </p>
+          )}
+        </Card>
       )}
 
       <Card className="mb-6">

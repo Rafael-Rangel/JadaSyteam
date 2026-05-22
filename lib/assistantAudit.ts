@@ -5,6 +5,8 @@ export type AssistantAuditAction =
   | 'enter_company'
   | 'leave_company'
   | 'billing_support_bypass'
+  | 'billing_support_issue_payment'
+  | 'billing_support_change_method'
   | 'api_denied';
 
 export async function logAssistantAction(input: {

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getPlanBySlugOrFallback } from '@/lib/planService';
 import { resolveBillingAccess } from '@/lib/billingAccess';
+import { canManageBillingOperations } from '@/lib/billingOperatorAccess';
 import { resolveTenantAccess } from '@/lib/sessionContext';
 
 export async function GET() {
@@ -87,6 +88,8 @@ export async function GET() {
       renewalEligible: access.renewalEligible,
       allowBusinessActions: access.allowBusinessActions,
       graceDaysRemaining: access.graceDaysRemaining,
+      canManageBilling: canManageBillingOperations(session?.user?.role, access),
+      isAssistantOperator: session?.user?.role === 'assistant',
     },
     limits: {
       users: planData.usersLimit,

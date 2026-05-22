@@ -91,6 +91,7 @@ export async function PATCH(
   const body = await request.json().catch(() => ({}));
   const updates: {
     name?: string;
+    email?: string;
     phone?: string | null;
     role?: PlatformRole;
     restrictToAssignedCompanies?: boolean;
@@ -99,6 +100,19 @@ export async function PATCH(
   } = {};
 
   if (typeof body.name === 'string' && body.name.trim()) updates.name = body.name.trim();
+  if (typeof body.email === 'string') {
+    const emailNorm = body.email.trim().toLowerCase();
+    if (!emailNorm || !/\S+@\S+\.\S+/.test(emailNorm)) {
+      return NextResponse.json({ error: 'E-mail inválido.' }, { status: 400 });
+    }
+    if (emailNorm !== existing.email) {
+      const taken = await prisma.user.findUnique({ where: { email: emailNorm } });
+      if (taken) {
+        return NextResponse.json({ error: 'Este e-mail já está em uso.' }, { status: 409 });
+      }
+      updates.email = emailNorm;
+    }
+  }
   if (body.phone !== undefined) updates.phone = body.phone?.trim() || null;
   if (typeof body.password === 'string' && body.password.length >= 8) {
     updates.password = await bcrypt.hash(body.password, 12);

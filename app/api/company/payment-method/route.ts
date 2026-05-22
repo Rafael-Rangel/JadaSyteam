@@ -3,7 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { asaasUpdateSubscription, AsaasBillingType } from '@/lib/asaas';
-import { resolveBillingAccess, isRenewalWindowOpen } from '@/lib/billingAccess';
+import { resolveBillingAccess } from '@/lib/billingAccess';
+import { canManageBillingOperations } from '@/lib/billingOperatorAccess';
+import { logAssistantAction } from '@/lib/assistantAudit';
 import { resolveTenantAccess } from '@/lib/sessionContext';
 
 function normalizeBillingType(value: unknown): AsaasBillingType | null {
@@ -55,11 +57,12 @@ export async function PATCH(request: Request) {
     billingNextDueDate: company.billingNextDueDate,
   });
 
-  if (!isRenewalWindowOpen(access)) {
+  const role = session?.user?.role;
+  if (!canManageBillingOperations(role, access)) {
     return NextResponse.json(
       {
         error:
-          'Alteração da forma de pagamento só é permitida na janela de renovação ou tolerância. Acesse Assinatura quando estiver disponível.',
+          'Alteração da forma de pagamento só é permitida na janela de renovação ou para a equipe JADA em modo suporte.',
       },
       { status: 403 }
     );
@@ -79,6 +82,15 @@ export async function PATCH(request: Request) {
       preferredBillingPeriod: period,
     },
   });
+
+  if (role === 'assistant' && session?.user?.id) {
+    await logAssistantAction({
+      assistantUserId: session.user.id,
+      companyId: company.id,
+      action: 'billing_support_change_method',
+      metadata: { billingType, period },
+    });
+  }
 
   return NextResponse.json({
     success: true,

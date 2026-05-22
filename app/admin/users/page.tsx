@@ -10,6 +10,9 @@ import {
   UserX,
   UserCheck,
   Filter,
+  Eye,
+  EyeOff,
+  Lock,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import PageHeader from '@/components/ui/PageHeader';
@@ -80,6 +83,7 @@ export default function AdminUsersPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<PlatformUser | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [showPassword, setShowPassword] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -132,11 +136,13 @@ export default function AdminUsersPage() {
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
+    setShowPassword(false);
     setModalOpen(true);
   }
 
   function openEdit(user: PlatformUser) {
     setEditing(user);
+    setShowPassword(false);
     setForm({
       name: user.name,
       email: user.email,
@@ -153,6 +159,7 @@ export default function AdminUsersPage() {
     setModalOpen(false);
     setEditing(null);
     setForm(emptyForm);
+    setShowPassword(false);
   }
 
   function toggleCompany(id: string) {
@@ -169,15 +176,17 @@ export default function AdminUsersPage() {
     setSaving(true);
     setError('');
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         name: form.name,
-        email: form.email,
+        email: form.email.trim().toLowerCase(),
         phone: form.phone || null,
         role: form.role,
         restrictToAssignedCompanies: form.restrictToAssignedCompanies,
-        companyIds: form.role === 'assistant' ? form.companyIds : [],
         ...(form.password ? { password: form.password } : {}),
       };
+      if (form.role === 'assistant') {
+        payload.companyIds = form.companyIds;
+      }
 
       const url = editing ? `/api/admin/users/${editing.id}` : '/api/admin/users';
       const method = editing ? 'PATCH' : 'POST';
@@ -400,16 +409,28 @@ export default function AdminUsersPage() {
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               required
-              disabled={!!editing}
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label={editing ? 'Nova senha (opcional)' : 'Senha inicial'}
-              type="password"
+              label="Senha"
+              type={showPassword ? 'text' : 'password'}
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
               required={!editing}
+              helperText={editing ? 'Deixe em branco para manter a senha atual.' : undefined}
+              icon={<Lock className="w-5 h-5" />}
+              rightIcon={
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="text-neutral-400 hover:text-neutral-600 focus:outline-none"
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              }
             />
             <Input
               label="Telefone"
@@ -466,10 +487,20 @@ export default function AdminUsersPage() {
                     setForm((f) => ({ ...f, restrictToAssignedCompanies: e.target.checked }))
                   }
                 />
-                <span>Limitar a ver apenas empresas atribuídas a este usuário</span>
+                <span>
+                  Limitar a ver apenas empresas atribuídas a este usuário
+                  <span className="block text-xs text-neutral-500 mt-1 font-normal">
+                    Marcado: só vê empresas listadas abaixo (não vê empresas de outros assistentes nem
+                    empresas sem atribuição). Desmarcado: vê todas as empresas cliente.
+                  </span>
+                </span>
               </label>
               <div>
-                <p className="text-sm font-medium text-neutral-800 mb-2">Empresas atribuídas</p>
+                <p className="text-sm font-medium text-neutral-800 mb-1">Empresas atribuídas</p>
+                <p className="text-xs text-neutral-500 mb-2">
+                  Opcional na criação. Você pode marcar ou desmarcar empresas a qualquer momento ao editar
+                  este usuário.
+                </p>
                 <div className="max-h-52 overflow-y-auto border border-neutral-200 rounded-md p-2 space-y-1">
                   {companies.length === 0 ? (
                     <p className="text-xs text-neutral-500">Nenhuma empresa aprovada.</p>
